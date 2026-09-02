@@ -1,0 +1,25 @@
+#!/bin/sh
+set -eu
+
+case "${1:-}" in
+  --help|-h)
+    printf '%s\n' 'Usage: eswitchctl <command> [arguments]'
+    ;;
+  status)
+    printf '%s\n' \
+      'OK' \
+      'service=eSwitch Management state=running uptime=1s' \
+      'config=/tmp/fake-eswitch.conf' \
+      'ports=3 assigned=0 available=3 vswitches=0 fdb=0'
+    ;;
+  list-port-available)
+    printf '%s\n' \
+      'OK' \
+      'DPDK port 0 (uplink/parent)' \
+      'DPDK port 1 (host=1 pf=0 vf=0)'
+    ;;
+  *)
+    printf '%s\n' 'ERR code=2 message=Fake smoke executable rejects mutation commands' >&2
+    exit 1
+    ;;
+esac
