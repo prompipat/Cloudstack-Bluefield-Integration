@@ -55,10 +55,11 @@ passing.
 
 ## Next phase
 
-Install or use a host with Docker Buildx, then execute the documented ARM64
-build and mock-mode smoke commands. BlueField deployment and CLI-mode
-readiness checks require explicit approval. Do not contact the real BlueField
-or execute mutation commands against it.
+Follow the query-only [Phase 5 runbook](docs/phase5-runbook.md). Authentication
+is not implemented yet: no API token setting or authentication header is
+defined, accepted, or required. Keep validation bound to BlueField loopback; remote
+zona-01 access is a hard stop until an authentication contract is approved and
+implemented. Do not execute mutation commands against the active environment.
 
 To resume development:
 

@@ -77,3 +77,62 @@ def test_fake_cli_rejects_mutation_commands() -> None:
     assert result.returncode == 1
     assert result.stdout == ""
     assert "rejects mutation commands" in result.stderr
+
+
+def test_compose_is_independent_from_eswitch_daemon() -> None:
+    content = COMPOSE.read_text()
+
+    assert "\n  eswitch-management:" not in content
+    assert "depends_on:" not in content
+    assert "network_mode:" not in content
+    assert "docker.sock" not in content
+    assert "/dev/hugepages" not in content
+    assert "/var/lib/eswitch-management" not in content
+    assert "devices:" not in content
+
+
+def test_compose_publishes_only_api_port_and_uses_readiness_healthcheck() -> None:
+    compose = COMPOSE.read_text()
+    dockerfile = DOCKERFILE.read_text()
+
+    assert compose.count(":8081:8081") == 1
+    assert "EXPOSE 8081" in dockerfile
+    assert "/health/ready" in dockerfile
+    assert "docker inspect" not in dockerfile
+
+
+def test_image_and_entrypoint_do_not_manage_daemon_or_wait_for_socket() -> None:
+    dockerfile = DOCKERFILE.read_text()
+    entrypoint = (ROOT / "docker" / "entrypoint.sh").read_text()
+    combined = dockerfile + entrypoint
+
+    forbidden = (
+        "docker.sock",
+        "docker start",
+        "docker stop",
+        "docker restart",
+        "systemctl",
+        "/dev/hugepages",
+        "/var/lib/eswitch-management",
+        "network_mode",
+        "privileged",
+        "vs-create",
+        "vs-delete",
+        "vs-port-attach",
+        "vs-port-detach",
+    )
+    for fragment in forbidden:
+        assert fragment not in combined
+
+    assert "control.sock" not in entrypoint
+    assert "eswitchctl" not in entrypoint
+    assert "exec uvicorn integration_api.main:app" in entrypoint
+
+
+def test_compose_mounts_only_required_host_resources() -> None:
+    content = COMPOSE.read_text()
+
+    assert content.count("source:") == 2
+    assert content.count("read_only: true") == 3
+    assert "source: /usr/local/bin/eswitchctl" in content
+    assert "source: /run/eswitch-management" in content

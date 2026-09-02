@@ -57,6 +57,19 @@ The API container must mount:
 Mount the socket directory rather than only the socket file so a socket
 recreated after an eswitch-management restart remains visible.
 
+The existing daemon runs independently as the standalone Docker container
+`eswitch-management`; it is not a systemd service and must not be added to or
+managed by the Integration API Compose project. The Integration API must never
+start, stop, restart, recreate, or modify that container, inspect secrets from
+it, or mount the Docker socket. It also must not use privileged mode, host
+networking, hugepages, DOCA device mounts, or `/var/lib/eswitch-management`.
+
+The target environment carries active traffic. Phase 5 runtime validation is
+strictly query-only: `--help`, `status`, `list-port-available`, liveness, and
+readiness. Do not commit raw MAC addresses or full operational logs. Observed
+FDB removal retries belong to the daemon/DOCA owner and are outside this API's
+responsibility.
+
 ## BlueField runtime information
 
 - Operating system: Ubuntu 24.04.4 LTS

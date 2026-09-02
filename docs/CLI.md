@@ -1,9 +1,9 @@
 # eswitchctl CLI and control protocol
 
 This document is the command contract between a local control client and the
-`eswitch-management` daemon. A future Python or CloudStack adapter should use
-the Unix socket protocol directly. It does not need to start another DOCA or
-DPDK process.
+`eswitch-management` daemon. The CloudStack Integration API uses the mounted
+`/usr/local/bin/eswitchctl` client; it does not implement the Unix socket
+transport directly and does not start another DOCA or DPDK process.
 
 ## Help
 
@@ -95,6 +95,12 @@ eSwitch Management control socket is not available: /run/eswitch-management/cont
 The daemon may not be running. Check it with:
   systemctl status eswitch-management
 ```
+
+The deployed BlueField daemon runs in the standalone
+`eswitch-management` container rather than as a systemd service. The text
+above is literal client output; diagnose the container through the platform
+operator without giving the Integration API Docker access or lifecycle
+control.
 
 ## Commands
 
