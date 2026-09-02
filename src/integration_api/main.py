@@ -12,7 +12,7 @@ from starlette.responses import Response
 from integration_api.adapters.base import ESwitchAdapter
 from integration_api.adapters.factory import create_adapter
 from integration_api.api.routes.eswitch import api_router, health_router
-from integration_api.core.config import Settings, get_settings
+from integration_api.core.config import AdapterMode, Settings, get_settings
 from integration_api.core.exceptions import (
     AdapterError,
     AdapterNotReadyError,
@@ -59,7 +59,15 @@ def create_app(
         app.state.adapter = adapter or create_adapter(selected_settings)
         yield
 
-    app = FastAPI(title=selected_settings.app_name, lifespan=lifespan)
+    expose_docs = selected_settings.eswitch_adapter_mode is AdapterMode.MOCK
+    app = FastAPI(
+        title=selected_settings.app_name,
+        lifespan=lifespan,
+        docs_url="/docs" if expose_docs else None,
+        redoc_url="/redoc" if expose_docs else None,
+        openapi_url="/openapi.json" if expose_docs else None,
+    )
+    app.state.settings = selected_settings
 
     @app.middleware("http")
     async def request_context(request: Request, call_next: RequestResponseEndpoint) -> Response:

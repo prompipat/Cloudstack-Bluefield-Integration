@@ -3,6 +3,7 @@ from typing import Annotated
 from fastapi import APIRouter, Depends, Path, Response, status
 
 from integration_api.adapters.base import ESwitchAdapter
+from integration_api.api.auth import require_api_token
 from integration_api.api.dependencies import get_adapter
 from integration_api.models.requests import AttachPortRequest, CreateVSwitchRequest
 from integration_api.models.responses import (
@@ -16,7 +17,11 @@ VSwitchPath = Annotated[int, Path(ge=1, le=65535)]
 PortPath = Annotated[int, Path(ge=0, le=65535)]
 
 health_router = APIRouter(prefix="/health", tags=["health"])
-api_router = APIRouter(prefix="/api/v1", tags=["eswitch"])
+api_router = APIRouter(
+    prefix="/api/v1",
+    tags=["eswitch"],
+    dependencies=[Depends(require_api_token)],
+)
 
 
 @health_router.get("/live")

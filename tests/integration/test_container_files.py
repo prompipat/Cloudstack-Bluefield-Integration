@@ -136,3 +136,20 @@ def test_compose_mounts_only_required_host_resources() -> None:
     assert content.count("read_only: true") == 3
     assert "source: /usr/local/bin/eswitchctl" in content
     assert "source: /run/eswitch-management" in content
+
+
+def test_token_is_required_at_runtime_and_excluded_from_image_context() -> None:
+    compose = COMPOSE.read_text()
+    dockerfile = DOCKERFILE.read_text()
+    dockerignore = (ROOT / ".dockerignore").read_text()
+    gitignore = (ROOT / ".gitignore").read_text()
+
+    assert (
+        "INTEGRATION_API_TOKEN: ${INTEGRATION_API_TOKEN:?INTEGRATION_API_TOKEN must be set}"
+    ) in compose
+    assert "INTEGRATION_API_TOKEN" not in dockerfile
+    assert "integration_api_token" not in dockerfile.lower()
+    assert ".env" in dockerignore.splitlines()
+    assert ".env" in gitignore.splitlines()
+    assert ".env.*" in dockerignore.splitlines()
+    assert ".env.*" in gitignore.splitlines()

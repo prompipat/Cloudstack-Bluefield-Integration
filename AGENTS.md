@@ -258,6 +258,27 @@ such as `eswitch-api`.
 - Log operation type, request ID, result, and duration.
 - Do not log API secrets.
 
+## API authentication
+
+All routes under `/api/v1` require exactly
+`Authorization: Bearer <token>`. The configured token comes only from
+`INTEGRATION_API_TOKEN`, must contain at least 32 characters, and is handled
+as a secret. Missing, invalid, malformed, or unsupported credentials return the
+same HTTP 401 response with `WWW-Authenticate: Bearer`. Scheme matching is
+case-insensitive; token matching is case-sensitive and constant-time.
+
+Health routes remain unauthenticated. Mock mode may start without a token for
+health-only development, but its operational routes return HTTP 401 until a
+valid token is configured. CLI mode must fail startup if the token is missing,
+empty, or too short. Swagger UI, ReDoc, and OpenAPI JSON are available in mock
+mode and disabled in CLI mode.
+
+Bearer authentication does not encrypt HTTP traffic. Remote access is
+prohibited until a protected management network, TLS termination, or another
+approved secure transport is confirmed. Never log the Authorization header or
+place the token in URLs, request bodies, command-line arguments, committed
+files, or container images.
+
 ## Development commands
 
 Install:

@@ -11,15 +11,12 @@ Allowed eSwitch queries are `--help`, `status`, and
 any real `vs-create`, `vs-delete`, `vs-port-attach`, or
 `vs-port-detach` command.
 
-Authentication is not implemented in the current repository. The former
-`API_TOKEN` placeholder has been removed from `.env.example`, and there is no
-authentication header to supply.
-Therefore:
-
-- loopback validation on `bluefield3-101` may proceed after approval;
-- an authenticated available-port query cannot yet be performed;
-- publishing port 8081 or querying it from `zona-01` is a hard stop until an
-  authentication contract is approved and implemented.
+All `/api/v1/*` routes require
+`Authorization: Bearer <INTEGRATION_API_TOKEN>`. Health routes remain public.
+The token is a plaintext credential at the HTTP layer; Bearer authentication
+does not encrypt the connection. Remote zona-01 testing remains blocked until
+the team confirms a protected management network, TLS termination, or another
+approved secure transport.
 
 `X-Request-ID` is correlation metadata, not authentication.
 
@@ -110,29 +107,41 @@ The commit ID must match the reviewed zona-01 commit and status must be clean.
 
 ### On bluefield3-101
 
-Create a local, ignored `.env` containing only non-secret Compose values:
+Generate a unique 256-bit token without printing it, then write it only to the
+ignored deployment `.env`:
 
 ```bash
+set +x
+INTEGRATION_API_TOKEN="$(openssl rand -hex 32)"
+test "${#INTEGRATION_API_TOKEN}" -ge 32
 umask 077
-printf '%s\n' \
-  'ESWITCH_ADAPTER_MODE=mock' \
-  'INTEGRATION_API_BIND_ADDRESS=127.0.0.1' > .env
+{
+  printf '%s\n' 'ESWITCH_ADAPTER_MODE=mock'
+  printf '%s\n' 'INTEGRATION_API_BIND_ADDRESS=127.0.0.1'
+  printf 'INTEGRATION_API_TOKEN=%s\n' "$INTEGRATION_API_TOKEN"
+} > .env
+chmod 0600 .env
+unset INTEGRATION_API_TOKEN
 git check-ignore .env
+stat -c '%a %n' .env
 ```
 
-Do not add `API_TOKEN`: the application does not implement authentication.
-Do not commit `.env`.
+Expected mode: `600`. Do not print, commit, or place the token in a shell
+script. Compose injects it as an environment variable, never as an application
+command-line argument.
 
-Render and inspect configuration before starting anything:
+Validate Compose without rendering the secret:
 
 ```bash
-docker compose config
+docker compose config --quiet
+docker compose config --services
+docker compose config --images
 ```
 
-The rendered project must contain only service `integration-api`. It must
-not contain `eswitch-management`, `depends_on`, host networking, privileged
-mode, Docker socket, hugepages, device mounts, or
-`/var/lib/eswitch-management`.
+The service output must be only `integration-api`; the image must be
+`cloudstack-bluefield-integration:local`. The configuration must not contain
+`eswitch-management`, `depends_on`, host networking, privileged mode,
+Docker socket, hugepages, device mounts, or `/var/lib/eswitch-management`.
 
 ## 4. Capture the pre-deployment query baseline
 
@@ -202,6 +211,7 @@ docker run --detach --name eswitch-api-mock-smoke \
   --cap-drop ALL \
   --security-opt no-new-privileges=true \
   --user 10001:10001 \
+  --env-file .env \
   --env ESWITCH_ADAPTER_MODE=mock \
   cloudstack-bluefield-integration:local
 curl --fail --show-error --include \
@@ -263,18 +273,17 @@ uplink or host/PF/VF formats.
 
 ### On bluefield3-101
 
-Update the ignored local environment:
+Preserve the token and switch the ignored deployment environment to CLI mode:
 
 ```bash
-umask 077
-printf '%s\n' \
-  'ESWITCH_ADAPTER_MODE=cli' \
-  'INTEGRATION_API_BIND_ADDRESS=127.0.0.1' > .env
-docker compose config
+sed -i 's/^ESWITCH_ADAPTER_MODE=.*/ESWITCH_ADAPTER_MODE=cli/' .env
+chmod 0600 .env
+docker compose config --quiet
 docker compose up --detach integration-api
 docker compose ps integration-api
 ```
 
+A missing, empty, or shorter-than-32-character token prevents CLI-mode startup.
 Do not declare or manage `eswitch-management` in this Compose project.
 
 ## 10. Identity, mounts, and isolation
@@ -305,6 +314,8 @@ Expected:
 
 ### On bluefield3-101
 
+Health calls intentionally omit authentication:
+
 ```bash
 curl --fail --show-error --include \
   -H 'X-Request-ID: phase5-live' \
@@ -312,24 +323,30 @@ curl --fail --show-error --include \
 curl --fail --show-error --include \
   -H 'X-Request-ID: phase5-ready' \
   http://127.0.0.1:8081/health/ready
-curl --fail --show-error --include \
-  -H 'X-Request-ID: phase5-available' \
-  http://127.0.0.1:8081/api/v1/ports/available
+```
+
+Load the ignored deployment token without printing it. Pass the Authorization
+header to curl through standard input rather than its command-line arguments:
+
+```bash
+set +x
+set -a
+. ./.env
+set +a
+printf '%s\n' \
+  'url = "http://127.0.0.1:8081/api/v1/ports/available"' \
+  'header = "X-Request-ID: phase5-available"' \
+  "header = \"Authorization: Bearer ${INTEGRATION_API_TOKEN}\"" \
+  | curl --fail --show-error --include --config -
+unset INTEGRATION_API_TOKEN
 ```
 
 Expected: HTTP 200 for all three, request IDs echoed, readiness body
-`{"status":"ready"}`, and a structured available-port JSON array.
+`{"status":"ready"}`, and a structured available-port JSON array. Missing,
+wrong, malformed, empty, or non-Bearer credentials must return the same HTTP
+401 response and `WWW-Authenticate: Bearer`.
 
-The available-port request above is unauthenticated because that is the exact
-current API behavior. It is suitable only for loopback validation.
-
-### Authentication hard stop
-
-The required authenticated available-port query cannot be written or executed
-against the current repository: no authentication scheme or header exists.
-Do not invent an `Authorization`, `X-API-Key`, or other header. Approve and
-implement authentication in a separate API change before continuing to remote
-connectivity.
+CLI mode returns HTTP 404 for `/docs`, `/redoc`, and `/openapi.json`.
 
 ## 12. Logs and health
 
@@ -364,45 +381,53 @@ The Integration API checks must not alter state.
 
 ## 14. zona-01 connectivity gate
 
-Remote validation is blocked until authentication is implemented and the
-BlueField firewall permits TCP 8081 only from zona-01.
-
-After those separate prerequisites are completed, replace
-`<BLUEFIELD_MANAGEMENT_IP>` with the approved address.
+Remote validation remains blocked until the team confirms a protected
+management network, TLS termination, or another approved secure transport.
+Bearer authentication alone does not make plaintext HTTP safe. After that
+approval, replace `<BLUEFIELD_MANAGEMENT_IP>` with the approved address.
 
 ### On bluefield3-101
 
 ```bash
-umask 077
-printf '%s\n' \
-  'ESWITCH_ADAPTER_MODE=cli' \
-  'INTEGRATION_API_BIND_ADDRESS=<BLUEFIELD_MANAGEMENT_IP>' > .env
+sed -i \
+  's/^INTEGRATION_API_BIND_ADDRESS=.*/INTEGRATION_API_BIND_ADDRESS=<BLUEFIELD_MANAGEMENT_IP>/' \
+  .env
+chmod 0600 .env
+docker compose config --quiet
 docker compose up --detach --force-recreate integration-api
 ss -ltnp | grep ':8081'
 ```
 
 ### On zona-01
 
-The authentication header cannot be specified until its contract exists.
-Once implemented, use the exact documented header with these endpoints:
+Health remains unauthenticated:
 
 ```bash
 curl --fail --show-error --include \
-  <AUTHENTICATION_HEADER> \
   -H 'X-Request-ID: zona01-live' \
   http://<BLUEFIELD_MANAGEMENT_IP>:8081/health/live
 curl --fail --show-error --include \
-  <AUTHENTICATION_HEADER> \
   -H 'X-Request-ID: zona01-ready' \
   http://<BLUEFIELD_MANAGEMENT_IP>:8081/health/ready
-curl --fail --show-error --include \
-  <AUTHENTICATION_HEADER> \
-  -H 'X-Request-ID: zona01-available' \
-  http://<BLUEFIELD_MANAGEMENT_IP>:8081/api/v1/ports/available
 ```
 
-These are deliberately placeholders and must not be executed as written.
-Replace them only after the repository defines the authentication header.
+For the query-only operational endpoint, read the deployment token through a
+non-echoing prompt. Do not put it in shell history or a committed script:
+
+```bash
+set +x
+read -r -s -p 'Integration API token: ' INTEGRATION_API_TOKEN
+printf '\n'
+printf '%s\n' \
+  'url = "http://<BLUEFIELD_MANAGEMENT_IP>:8081/api/v1/ports/available"' \
+  'header = "X-Request-ID: zona01-available"' \
+  "header = \"Authorization: Bearer ${INTEGRATION_API_TOKEN}\"" \
+  | curl --fail --show-error --include --config -
+unset INTEGRATION_API_TOKEN
+```
+
+The address remains a deliberate placeholder. Execute these commands only
+after the transport or protected-network gate is approved.
 
 ## 15. Failure diagnosis
 
@@ -452,12 +477,25 @@ mutation command.
 
 ### Authentication
 
-HTTP 200 without credentials reflects the known missing-authentication gate,
-not successful authentication. HTTP 401/403 behavior does not exist yet.
+On bluefield3-101, confirm that the configured value exists and meets the
+length requirement without printing it:
+
+```bash
+docker compose exec integration-api /bin/sh -c \
+  'test -n "$INTEGRATION_API_TOKEN" && test "${#INTEGRATION_API_TOKEN}" -ge 32'
+curl --show-error --include \
+  http://127.0.0.1:8081/api/v1/ports/available
+```
+
+The unauthenticated request must return HTTP 401 with the generic body
+`{"detail":"Invalid or missing bearer token"}` and
+`WWW-Authenticate: Bearer`. Wrong, malformed, empty, and unsupported-scheme
+credentials return the same response. Authentication does not call
+`eswitchctl`; a readiness failure is diagnosed separately.
 
 ### Network
 
-After authentication and firewall approval only:
+After the approved transport or protected-network gate only:
 
 ```bash
 ss -ltnp | grep ':8081'
@@ -473,7 +511,38 @@ curl --connect-timeout 5 --show-error --include \
 Distinguish refused connections from timeouts and HTTP errors before changing
 network policy.
 
-## 16. Clean shutdown and rollback
+## 16. Token rotation
+
+### On bluefield3-101
+
+Rotate only the Integration API credential. This recreates the API container
+and neither restarts nor modifies `eswitch-management`:
+
+```bash
+set +x
+set -a
+. ./.env
+set +a
+INTEGRATION_API_TOKEN="$(openssl rand -hex 32)"
+test "${#INTEGRATION_API_TOKEN}" -ge 32
+umask 077
+{
+  printf 'ESWITCH_ADAPTER_MODE=%s\n' "$ESWITCH_ADAPTER_MODE"
+  printf 'INTEGRATION_API_BIND_ADDRESS=%s\n' "$INTEGRATION_API_BIND_ADDRESS"
+  printf 'INTEGRATION_API_TOKEN=%s\n' "$INTEGRATION_API_TOKEN"
+} > .env.new
+chmod 0600 .env.new
+mv .env.new .env
+unset ESWITCH_ADAPTER_MODE INTEGRATION_API_BIND_ADDRESS INTEGRATION_API_TOKEN
+docker compose config --quiet
+docker compose up --detach --force-recreate integration-api
+curl --fail --show-error http://127.0.0.1:8081/health/ready
+```
+
+Distribute the new token only through the site's approved secret channel.
+The previous token becomes invalid when the replacement API container starts.
+
+## 17. Clean shutdown and rollback
 
 ### On bluefield3-101
 

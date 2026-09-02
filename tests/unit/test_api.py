@@ -9,6 +9,8 @@ from integration_api.core.config import Settings
 from integration_api.core.exceptions import DaemonError
 from integration_api.main import create_app
 
+TEST_TOKEN = "test-token-for-api-routes-1234567890"
+
 
 @pytest.fixture
 def adapter() -> MockESwitchAdapter:
@@ -17,8 +19,8 @@ def adapter() -> MockESwitchAdapter:
 
 @pytest.fixture
 def client(adapter: MockESwitchAdapter) -> Generator[TestClient, None, None]:
-    app = create_app(settings=Settings(), adapter=adapter)
-    with TestClient(app) as test_client:
+    app = create_app(settings=Settings(integration_api_token=TEST_TOKEN), adapter=adapter)
+    with TestClient(app, headers={"Authorization": f"Bearer {TEST_TOKEN}"}) as test_client:
         yield test_client
 
 
@@ -113,10 +115,14 @@ def test_domain_errors_are_sanitized(client: TestClient) -> None:
 def test_daemon_details_are_not_exposed() -> None:
     adapter = Mock()
     adapter.create_vswitch.side_effect = DaemonError(77, "sensitive hardware detail", 1)
-    app = create_app(settings=Settings(), adapter=adapter)
+    app = create_app(settings=Settings(integration_api_token=TEST_TOKEN), adapter=adapter)
 
     with TestClient(app) as client:
-        response = client.post("/api/v1/vswitches", json={"vswitch_id": 1})
+        response = client.post(
+            "/api/v1/vswitches",
+            json={"vswitch_id": 1},
+            headers={"Authorization": f"Bearer {TEST_TOKEN}"},
+        )
 
     assert response.status_code == 409
     assert "sensitive" not in response.text

@@ -14,7 +14,9 @@ Phase 4 is complete. The repository contains:
 - deterministic mock and allowlisted CLI adapters;
 - a FastAPI application with separate liveness and readiness endpoints;
 - all initial vSwitch and port REST endpoints;
+- router-level static Bearer authentication for all operational API routes;
 - sanitized adapter error responses, request IDs, and operation logging;
+- production-disabled interactive API documentation;
 - a hardened ARM64 container definition and BlueField compose configuration;
 - unit, API, container-contract, and fake-CLI smoke tests.
 
@@ -41,6 +43,25 @@ python -m pip install --upgrade pip
 python -m pip install -e ".[dev]"
 ```
 
+## Authentication and documentation
+
+`GET /health/live` and `GET /health/ready` are unauthenticated. Every route
+under `/api/v1` requires:
+
+```text
+Authorization: Bearer <INTEGRATION_API_TOKEN>
+```
+
+The token is case-sensitive and must be at least 32 characters. In CLI mode it
+is required at startup. Mock mode can start without it for health-only
+development, but operational requests return HTTP 401 until it is configured.
+Missing and invalid credentials receive the same generic response.
+
+Mock mode exposes `/docs`, `/redoc`, and `/openapi.json`. CLI mode disables
+all three. Bearer authentication protects credentials from guessing but does
+not encrypt HTTP traffic; use only an approved protected management network or
+secure transport for remote access.
+
 ## Validation
 
 ```bash
@@ -50,16 +71,17 @@ mypy
 pytest
 ```
 
-The Phase 4 baseline is 95 passing tests with Ruff and strict mypy also
+The current baseline is 135 passing tests with Ruff and strict mypy also
 passing.
 
 ## Next phase
 
-Follow the query-only [Phase 5 runbook](docs/phase5-runbook.md). Authentication
-is not implemented yet: no API token setting or authentication header is
-defined, accepted, or required. Keep validation bound to BlueField loopback; remote
-zona-01 access is a hard stop until an authentication contract is approved and
-implemented. Do not execute mutation commands against the active environment.
+Follow the query-only [Phase 5 runbook](docs/phase5-runbook.md). Set a unique
+`INTEGRATION_API_TOKEN` of at least 32 characters and send it only as
+`Authorization: Bearer <token>` to `/api/v1/*`. Health endpoints remain
+public. Bearer authentication does not encrypt HTTP: remote zona-01 access
+remains blocked until a protected management network, TLS termination, or
+another approved secure transport is confirmed.
 
 To resume development:
 

@@ -9,6 +9,8 @@ from integration_api.adapters.cli import CliESwitchAdapter
 from integration_api.core.config import AdapterMode, Settings
 from integration_api.main import create_app
 
+TEST_TOKEN = "test-token-for-cli-lifecycle-123456"
+
 RUNNING_STATUS = (
     "OK\n"
     "service=eSwitch Management state=running uptime=120s\n"
@@ -20,7 +22,10 @@ RUNNING_STATUS = (
 def cli_client(runner: Mock) -> TestClient:
     adapter = CliESwitchAdapter(Path("/usr/local/bin/eswitchctl"), 1, runner=runner)
     app = create_app(
-        settings=Settings(eswitch_adapter_mode=AdapterMode.CLI),
+        settings=Settings(
+            eswitch_adapter_mode=AdapterMode.CLI,
+            integration_api_token=TEST_TOKEN,
+        ),
         adapter=adapter,
     )
     return TestClient(app)
@@ -107,7 +112,7 @@ def test_readiness_recovers_without_restarting_api() -> None:
     )
 
 
-def test_available_ports_currently_has_no_authentication_gate() -> None:
+def test_authentication_failure_does_not_invoke_cli_adapter() -> None:
     runner = Mock(
         return_value=completed(
             "OK\nDPDK port 0 (uplink/parent)\n",
@@ -116,11 +121,10 @@ def test_available_ports_currently_has_no_authentication_gate() -> None:
     )
 
     with cli_client(runner) as client:
-        without_header = client.get("/api/v1/ports/available")
-        invented_header = client.get(
+        response = client.get(
             "/api/v1/ports/available",
-            headers={"Authorization": "Bearer ignored"},
+            headers={"Authorization": "Bearer wrong-token-value-that-is-long-enough"},
         )
 
-    assert without_header.status_code == 200
-    assert invented_header.status_code == 200
+    assert response.status_code == 401
+    runner.assert_not_called()
