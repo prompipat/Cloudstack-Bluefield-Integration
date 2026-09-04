@@ -21,6 +21,8 @@ dist
 
 docs
 tests
+host_tools
+examples
 
 *.log
 *.pid

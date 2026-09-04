@@ -138,6 +138,19 @@ def test_compose_mounts_only_required_host_resources() -> None:
     assert "source: /run/eswitch-management" in content
 
 
+def test_host_resolver_is_excluded_from_api_package_and_image_context() -> None:
+    dockerfile = DOCKERFILE.read_text()
+    dockerignore = (ROOT / ".dockerignore").read_text().splitlines()
+    pyproject = (ROOT / "pyproject.toml").read_text()
+
+    assert "COPY src ./src" in dockerfile
+    assert "host_tools" not in dockerfile
+    assert "examples" not in dockerfile
+    assert "host_tools" in dockerignore
+    assert "examples" in dockerignore
+    assert 'where = ["src"]' in pyproject
+
+
 def test_token_is_required_at_runtime_and_excluded_from_image_context() -> None:
     compose = COMPOSE.read_text()
     dockerfile = DOCKERFILE.read_text()

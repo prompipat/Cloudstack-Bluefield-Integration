@@ -74,8 +74,28 @@ mypy
 pytest
 ```
 
-The current baseline is 135 passing tests with Ruff and strict mypy also
+The current baseline is 182 passing tests with Ruff and strict mypy also
 passing.
+
+## Phase 6.2 host-side VF-to-PCI resolver
+
+The read-only reference resolver lives outside the BlueField API package and
+container. It demonstrates the future KVM Agent boundary: translate the
+`host`, `pf`, and `vf_index` returned by the API through a compute-host-local
+PF mapping and sysfs `virtfnN` link. See the
+[VF-to-PCI resolver guide](docs/vf-pci-resolver.md).
+
+```bash
+python -m host_tools.vf_pci_resolver \
+  --mapping-file examples/bluefield-pf-map.example.toml \
+  --host 1 --pf 0 --vf-index 4
+```
+
+The committed mapping is deliberately generic. A real compute host should
+install its site-specific mapping at
+`/etc/cloudstack/bluefield-pf-map.toml`. Resolution reports identity metadata
+only; it does not reserve a VF or establish that one is unused or safe to
+attach.
 
 ## Phase 6 prerequisites
 

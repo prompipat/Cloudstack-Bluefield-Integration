@@ -43,4 +43,4 @@ select = ["E", "F", "I", "B", "UP", "SIM"]
 [tool.mypy]
 python_version = "3.12"
 strict = true
-packages = ["integration_api"]
+packages = ["integration_api", "host_tools"]

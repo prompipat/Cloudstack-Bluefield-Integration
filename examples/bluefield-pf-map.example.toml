@@ -1,0 +1,8 @@
+# Example only; install a site-specific copy at:
+# /etc/cloudstack/bluefield-pf-map.toml
+# This generic value is not production state.
+
+[[mappings]]
+host = 1
+pf = 0
+pci_address = "0000:01:00.0"

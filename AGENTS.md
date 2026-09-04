@@ -279,6 +279,20 @@ approved secure transport is confirmed. Never log the Authorization header or
 place the token in URLs, request bodies, command-line arguments, committed
 files, or container images.
 
+## Host-side VF-to-PCI resolver boundary
+
+The reference module `host_tools.vf_pci_resolver` runs on a selected KVM
+Compute Host, never inside the BlueField Integration API container. It reads a
+site-specific `/etc/cloudstack/bluefield-pf-map.toml` and host-local sysfs to
+resolve `(host, pf, vf_index)` to a PCI BDF. It must remain read-only and must
+not infer reservation, availability, or attachment safety. The committed
+example mapping is generic and is not production configuration.
+
+The module, mapping examples, fake sysfs tests, and host-side documentation
+must remain outside the API wheel and container. Future CloudStack integration
+belongs in the KVM Agent and requires an atomic allocation/reservation design;
+this repository must not modify CloudStack during the reference-tool phase.
+
 ## Development commands
 
 Install:
