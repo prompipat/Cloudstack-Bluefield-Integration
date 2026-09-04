@@ -20,6 +20,28 @@ approved secure transport.
 
 `X-Request-ID` is correlation metadata, not authentication.
 
+## Successful validation result
+
+Phase 5 completed successfully on `bluefield3-101`. The native image
+`cloudstack-bluefield-integration:local` ran as `linux/arm64` with UID/GID
+10001; supplementary group 0 provided the PoC socket access. Image inspection
+and history contained no deployment token, and the healthcheck called only
+`/health/ready`.
+
+Both mock and CLI containers became healthy. Public liveness and readiness
+succeeded, missing authentication returned HTTP 401 with a Bearer challenge,
+and authenticated available-port queries succeeded. CLI mode accessed the
+read-only mounted executable and socket directory and correctly parsed both
+uplink and VF representor results.
+
+The eSwitch state and available-port output were unchanged before and after
+validation. The standalone `eswitch-management` container remained running
+and healthy. Connectivity from `zona-01` was validated through an encrypted
+SSH tunnel while the API stayed bound to BlueField loopback; the temporary
+client-side token copy was then removed. Rollback removed only the Integration
+API container and network. No real create, delete, attach, or detach command
+was run.
+
 ## 1. Pre-deployment checks
 
 ### On zona-01
@@ -583,3 +605,20 @@ ss -ltnp | grep ':8081' || true
 
 Retain build logs and summarized query results outside the repository
 according to the site's operational log policy.
+
+## Phase 6 prerequisites
+
+Phase 5 success does not authorize mutation testing. Before Phase 6:
+
+- obtain explicit mutation approval and schedule an operational change window;
+- coordinate isolated test vSwitch IDs and ports, rollback steps, and success
+  criteria with the eSwitch/DOCA owner because the target carries traffic;
+- approve the permanent zona-01 transport or protected-network policy;
+- replace the PoC supplementary group 0 with a dedicated production socket
+  group;
+- approve token custody, distribution, and rotation procedures;
+- define monitoring and measure representative CPU, RSS, latency, concurrency,
+  and failure behavior before choosing container resource limits;
+- keep the Integration API independent from the daemon container and preserve
+  the prohibition on Docker socket, privileged mode, host networking,
+  hugepages, devices, and daemon configuration mounts.

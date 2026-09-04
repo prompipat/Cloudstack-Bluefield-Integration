@@ -5,7 +5,7 @@ eSwitch Management.
 
 ## Current status
 
-Phase 4 is complete. The repository contains:
+Phase 5 query-only runtime validation is complete. The repository contains:
 
 - strict application and adapter configuration;
 - validated request and response models;
@@ -20,9 +20,12 @@ Phase 4 is complete. The repository contains:
 - a hardened ARM64 container definition and BlueField compose configuration;
 - unit, API, container-contract, and fake-CLI smoke tests.
 
-Docker is unavailable in the current development environment, so the ARM64
-image has not been built or started here. Automated tests never invoke
-the production executable or contact the BlueField daemon.
+The native ARM64 image was built and validated on `bluefield3-101` in both
+mock and CLI modes. Liveness, readiness, Bearer authentication, mounted
+`eswitchctl` access, read-only mounts, socket permissions, and available-port
+parsing all passed. The eSwitch state was unchanged, and the independent
+`eswitch-management` container remained running and healthy. Automated tests
+still never invoke the production executable or contact the BlueField daemon.
 
 ## Runtime architecture
 
@@ -74,14 +77,24 @@ pytest
 The current baseline is 135 passing tests with Ruff and strict mypy also
 passing.
 
-## Next phase
+## Phase 6 prerequisites
 
-Follow the query-only [Phase 5 runbook](docs/phase5-runbook.md). Set a unique
-`INTEGRATION_API_TOKEN` of at least 32 characters and send it only as
-`Authorization: Bearer <token>` to `/api/v1/*`. Health endpoints remain
-public. Bearer authentication does not encrypt HTTP: remote zona-01 access
-remains blocked until a protected management network, TLS termination, or
-another approved secure transport is confirmed.
+Before any mutation validation or CloudStack integration begins:
+
+- obtain explicit approval and an operational change window for real
+  `vs-create`, `vs-delete`, `vs-port-attach`, or `vs-port-detach` testing;
+- agree on isolated test identifiers and ports, expected rollback steps, and
+  success criteria with the eSwitch/DOCA owner;
+- confirm approved encrypted transport or protected-management-network policy
+  for persistent zona-01 connectivity;
+- replace supplementary group 0 with a dedicated socket group for production;
+- define token distribution and rotation ownership without committing secrets;
+- establish monitoring and collect representative API CPU, memory, latency,
+  concurrency, and failure data before selecting resource limits.
+
+Until these gates are satisfied, continue using the query-only
+[Phase 5 runbook](docs/phase5-runbook.md). Health endpoints remain public;
+all `/api/v1/*` requests require Bearer authentication.
 
 To resume development:
 

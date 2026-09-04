@@ -72,3 +72,37 @@ uses approximately 68 MiB and roughly one CPU core due to DPDK polling, without
 an explicit cpuset or NanoCPUs limit. Do not derive API resource limits from
 these observations; measure API CPU, RSS, request concurrency, and latency
 during representative query and mutation workloads before selecting limits.
+
+## Phase 5 validation outcome
+
+Query-only runtime validation completed successfully on `bluefield3-101`:
+
+- the native image `cloudstack-bluefield-integration:local` built and ran as
+  `linux/arm64` with runtime UID/GID 10001;
+- supplementary group 0 provided PoC access to the `root:root 0660` socket;
+- the deployment token was absent from image inspection data and image history;
+- the image healthcheck queried only `/health/ready`;
+- mock and CLI containers became healthy, with successful liveness and
+  readiness checks;
+- missing authentication produced HTTP 401 with a Bearer challenge, while
+  authenticated mock and CLI available-port queries succeeded;
+- CLI mode accessed the read-only mounted executable and control-socket
+  directory and parsed both uplink and VF representor formats;
+- before-and-after eSwitch state, vSwitch output, and available-port output
+  were unchanged;
+- the standalone `eswitch-management` container remained running and healthy;
+- `zona-01` connectivity used an encrypted SSH tunnel while the API remained
+  bound to BlueField loopback, and the temporary copied client token was
+  removed afterward;
+- `docker compose down` removed only the Integration API container and network;
+- no real create, delete, attach, or detach command was executed.
+
+## Phase 6 prerequisites
+
+Before real mutation validation or CloudStack integration, obtain explicit
+approval and a change window, select isolated test identifiers and rollback
+criteria with the eSwitch/DOCA owner, approve the permanent secure transport,
+replace supplementary group 0 with a dedicated production socket group, and
+define secret ownership and monitoring. Measure the Integration API under
+representative workloads before choosing resource limits. Phase 5 completion
+does not authorize mutation commands.
