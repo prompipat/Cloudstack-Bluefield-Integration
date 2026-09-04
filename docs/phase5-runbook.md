@@ -330,9 +330,19 @@ header to curl through standard input rather than its command-line arguments:
 
 ```bash
 set +x
-set -a
-. ./.env
-set +a
+INTEGRATION_API_TOKEN="$(
+python3 - <<'PY'
+from pathlib import Path
+
+for line in Path(".env").read_text(encoding="utf-8").splitlines():
+    if line.startswith("INTEGRATION_API_TOKEN="):
+        print(line.split("=", 1)[1])
+        break
+else:
+    raise SystemExit("INTEGRATION_API_TOKEN not found")
+PY
+)"
+export INTEGRATION_API_TOKEN
 printf '%s\n' \
   'url = "http://127.0.0.1:8081/api/v1/ports/available"' \
   'header = "X-Request-ID: phase5-available"' \
@@ -520,9 +530,19 @@ and neither restarts nor modifies `eswitch-management`:
 
 ```bash
 set +x
-set -a
-. ./.env
-set +a
+INTEGRATION_API_TOKEN="$(
+python3 - <<'PY'
+from pathlib import Path
+
+for line in Path(".env").read_text(encoding="utf-8").splitlines():
+    if line.startswith("INTEGRATION_API_TOKEN="):
+        print(line.split("=", 1)[1])
+        break
+else:
+    raise SystemExit("INTEGRATION_API_TOKEN not found")
+PY
+)"
+export INTEGRATION_API_TOKEN
 INTEGRATION_API_TOKEN="$(openssl rand -hex 32)"
 test "${#INTEGRATION_API_TOKEN}" -ge 32
 umask 077
