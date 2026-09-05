@@ -2,7 +2,8 @@ from enum import StrEnum
 
 from pydantic import BaseModel, ConfigDict, model_validator
 
-from integration_api.models.common import PortId, VSwitchId
+from integration_api.models.allocation import AllocationState
+from integration_api.models.common import NonNegativeIdentity, PortId, VSwitchId
 
 
 class PortType(StrEnum):
@@ -38,3 +39,15 @@ class PortAttachmentResult(BaseModel):
     model_config = ConfigDict(extra="forbid", frozen=True)
     vswitch_id: VSwitchId
     port_id: PortId
+
+
+class AllocationResult(BaseModel):
+    model_config = ConfigDict(extra="forbid", frozen=True)
+    allocation_id: str
+    idempotency_key: str
+    state: AllocationState
+    vswitch_id: VSwitchId
+    port_id: PortId
+    host: NonNegativeIdentity
+    pf: NonNegativeIdentity
+    vf_index: NonNegativeIdentity

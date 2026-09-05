@@ -11,6 +11,8 @@ from starlette.responses import Response
 
 from integration_api.adapters.base import ESwitchAdapter
 from integration_api.adapters.factory import create_adapter
+from integration_api.adapters.mock import MockESwitchAdapter
+from integration_api.adapters.mock_allocation import MockAllocationPortBackend
 from integration_api.api.routes.eswitch import api_router, health_router
 from integration_api.core.config import AdapterMode, Settings, get_settings
 from integration_api.core.exceptions import (
@@ -28,6 +30,19 @@ from integration_api.core.exceptions import (
     ResponseParseError,
     VSwitchAlreadyExistsError,
     VSwitchNotFoundError,
+)
+from integration_api.services.allocation import (
+    AllocationError,
+    AllocationFeatureUnavailableError,
+    AllocationService,
+    AmbiguousAttachOutcomeError,
+    IdempotencyConflictError,
+    InMemoryAllocationStore,
+    InvalidAllocationRequestError,
+    InvalidIdempotencyKeyError,
+    NoEligibleRepresentorError,
+    ProcessLocalAllocationSynchronization,
+    ReconciliationRequiredError,
 )
 
 logger = logging.getLogger("integration_api.operations")
@@ -51,12 +66,24 @@ def create_app(
     *,
     settings: Settings | None = None,
     adapter: ESwitchAdapter | None = None,
+    allocation_service: AllocationService | None = None,
 ) -> FastAPI:
     selected_settings = settings or get_settings()
 
     @asynccontextmanager
     async def lifespan(app: FastAPI) -> AsyncIterator[None]:
-        app.state.adapter = adapter or create_adapter(selected_settings)
+        selected_adapter = adapter or create_adapter(selected_settings)
+        app.state.adapter = selected_adapter
+        app.state.allocation_service = None
+        if selected_settings.eswitch_adapter_mode is AdapterMode.MOCK:
+            if allocation_service is not None:
+                app.state.allocation_service = allocation_service
+            elif isinstance(selected_adapter, MockESwitchAdapter):
+                app.state.allocation_service = AllocationService(
+                    MockAllocationPortBackend(selected_adapter),
+                    InMemoryAllocationStore(),
+                    ProcessLocalAllocationSynchronization(),
+                )
         yield
 
     expose_docs = selected_settings.eswitch_adapter_mode is AdapterMode.MOCK
@@ -106,6 +133,30 @@ def create_app(
         request: Request, _error: InvalidAdapterArgumentError
     ) -> JSONResponse:
         return _error_response(422, "invalid_argument", request.state.request_id)
+
+    async def handle_allocation_error(request: Request, error: AllocationError) -> JSONResponse:
+        if isinstance(error, (InvalidAllocationRequestError, InvalidIdempotencyKeyError)):
+            status_code = status.HTTP_400_BAD_REQUEST
+        elif isinstance(error, (IdempotencyConflictError, NoEligibleRepresentorError)):
+            status_code = status.HTTP_409_CONFLICT
+        elif isinstance(
+            error,
+            (
+                AmbiguousAttachOutcomeError,
+                ReconciliationRequiredError,
+                AllocationFeatureUnavailableError,
+            ),
+        ):
+            status_code = status.HTTP_503_SERVICE_UNAVAILABLE
+        else:
+            status_code = status.HTTP_409_CONFLICT
+        return JSONResponse(
+            status_code=status_code,
+            content={"error": {"code": error.code, "message": "The allocation operation failed."}},
+            headers={"X-Request-ID": request.state.request_id},
+        )
+
+    app.add_exception_handler(AllocationError, handle_allocation_error)  # type: ignore[arg-type]
 
     unavailable_errors = (
         AdapterNotReadyError,

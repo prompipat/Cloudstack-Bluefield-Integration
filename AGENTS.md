@@ -293,6 +293,25 @@ must remain outside the API wheel and container. Future CloudStack integration
 belongs in the KVM Agent and requires an atomic allocation/reservation design;
 this repository must not modify CloudStack during the reference-tool phase.
 
+## Phase 6.4A allocation safety
+
+`POST /api/v1/vswitches/{vswitch_id}/ports/allocate` is an executable
+mock/fake specification only. It must remain authenticated and fail closed with
+`allocation_mock_only` in CLI mode before any adapter call. Its in-memory store
+and process-local lock are development mechanisms, not durable persistence,
+distributed locking, or fencing.
+
+Allocation must exclude every uplink and port 0. Only successful attach is an
+effective reservation. A definitive race may select another candidate; a
+timeout or ambiguous result must be observed and never blindly retried. An
+observed attachment after ambiguity does not prove rollback ownership. No
+release or compensation may reverse a resource without proven ownership.
+
+Do not enable real allocation until durable workflow storage, distributed
+locking/fencing, authoritative daemon error semantics, approved isolated test
+resources, rollback ownership, secure transport, and explicit mutation
+approval are complete.
+
 ## Development commands
 
 Install:

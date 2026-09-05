@@ -20,6 +20,10 @@ approved secure transport.
 
 `X-Request-ID` is correlation metadata, not authentication.
 
+Phase 6.4A adds an allocation endpoint for mock/fake testing only. In this
+runbook's real CLI mode it returns HTTP 503 with `allocation_mock_only` before
+any adapter invocation. Do not call it during query-only validation.
+
 ## Successful validation result
 
 Phase 5 completed successfully on `bluefield3-101`. The native image

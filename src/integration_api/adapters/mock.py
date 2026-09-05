@@ -78,6 +78,13 @@ class MockESwitchAdapter:
                 if port_id not in self._port_owners
             ]
 
+    def observe_port_owner(self, port_id: int) -> int | None:
+        """Return mock membership for development-only reconciliation tests."""
+        _validate_port_id(port_id)
+        with self._lock:
+            self._require_ready()
+            return self._port_owners.get(port_id)
+
     def attach_port(self, vswitch_id: int, port_id: int) -> None:
         _validate_vswitch_id(vswitch_id)
         _validate_port_id(port_id)

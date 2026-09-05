@@ -5,7 +5,7 @@ eSwitch Management.
 
 ## Current status
 
-Phase 6.2 read-only host resolver validation is complete. The repository contains:
+Phase 6.4A mock-only allocation specification is implemented. The repository contains:
 
 - strict application and adapter configuration;
 - validated request and response models;
@@ -74,7 +74,7 @@ mypy
 pytest
 ```
 
-The current baseline is 182 passing tests with Ruff and strict mypy also
+The current baseline is 203 passing tests with Ruff and strict mypy also
 passing.
 
 ## Phase 6.2 host-side VF-to-PCI resolver
@@ -104,8 +104,16 @@ checksum and symlink checks confirmed no inspected host state changed.
 The documentation-only
 [Phase 6.3 allocation workflow](docs/phase6-allocation-workflow.md) defines the
 future attach-as-reservation sequence, durable idempotency, concurrency model,
-compensation, reconciliation, proposed API contracts, and approval gates. It
-does not authorize or implement mutation operations.
+compensation, reconciliation, proposed API contracts, and approval gates. Phase 6.4A now implements that specification with typed domain models,
+legal transitions, injected narrow interfaces, development-only in-memory
+idempotency, and process-local synchronization. The authenticated allocation
+endpoint can mutate only `MockESwitchAdapter`; CLI mode returns HTTP 503 with
+`allocation_mock_only` before invoking an adapter. No real mutation has been
+validated.
+
+The in-memory store and process-local lock are not safe across processes,
+restarts, or replicas. They are executable test/development behavior, not a
+production source of truth or distributed lock.
 
 ## Phase 6 prerequisites
 

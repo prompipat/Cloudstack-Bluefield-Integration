@@ -2,10 +2,18 @@
 
 ## Status
 
-This is a documentation-only architecture proposal. It neither implements nor
-authorizes mutations. No real `vs-create`, `vs-delete`, `vs-port-attach`,
-`vs-port-detach`, Libvirt operation, VF binding, or VM operation may be tested
-without the explicit gates in this document.
+Phase 6.4A implements an executable mock/fake specification of the allocation
+portion of this design. It does not authorize real mutations. No real
+`vs-create`, `vs-delete`, `vs-port-attach`, `vs-port-detach`, Libvirt
+operation, VF binding, or VM operation may be tested without the explicit
+gates in this document.
+
+The authenticated endpoint is available only when the application is in mock
+mode with an injected mock allocation service or concrete `MockESwitchAdapter`.
+CLI mode fails closed with HTTP 503 and stable code `allocation_mock_only`
+before an adapter call. The implementation uses development-only in-memory
+persistence and a process-local lock; neither is safe across processes,
+restarts, or replicas. No real mutation has been validated.
 
 ## 1. Scope and non-goals
 
@@ -217,7 +225,11 @@ on definitive attach rejection, durable idempotency, candidate retry, and
 post-error observation.
 
 A successful `vs-port-attach` is the effective reservation. Neither listing a
-port nor resolving its VF through sysfs reserves anything.
+port nor resolving its VF through sysfs reserves anything. Phase 6.4A also
+tracks whether attachment ownership is proven: explicit mock attach success
+sets ownership, while membership observed after an ambiguous result does not.
+That distinction prevents future compensation from treating observation alone
+as authority to detach.
 
 ## 9. Failure and compensation matrix
 
