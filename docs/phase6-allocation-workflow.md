@@ -74,6 +74,22 @@ does not make in-memory persistence or process-local locking production-safe,
 does not enable allocation in CLI mode, and does not satisfy the production
 gates later in this document.
 
+## Phase 6.5A host-side dry-run planning
+
+The host-side `host_tools.vf_attachment_planner` consumes a trusted, previously
+captured allocation-result file; it does not call the allocation API. It
+accepts only the `PORT_ATTACHED` eSwitch workflow state, rejects uplink port 0,
+and delegates the returned host/PF/VF identity to the read-only sysfs resolver.
+Its deterministic output is a topology checkpoint, not a new durable workflow
+state and not evidence of VM attachment.
+
+A successful plan does not prove that the VF is available, still reserved,
+owned by the caller, or safe to attach. It performs no binding or Libvirt
+operation. The durable orchestrator remains responsible for validating current
+eSwitch and VM observations, advancing to `VM_ATTACHING`, and handling
+rollback or reconciliation. The reference planner remains outside the
+BlueField API package and image.
+
 ## 1. Scope and non-goals
 
 The proposed workflow coordinates a CloudStack request with BlueField port

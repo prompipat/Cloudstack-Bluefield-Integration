@@ -1,0 +1,10 @@
+{
+  "allocation_id": "00000000-0000-4000-8000-000000000000",
+  "idempotency_key": "example-dry-run-allocation",
+  "state": "PORT_ATTACHED",
+  "vswitch_id": 101,
+  "port_id": 1,
+  "host": 1,
+  "pf": 0,
+  "vf_index": 0
+}

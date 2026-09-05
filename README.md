@@ -20,6 +20,7 @@ Phase 6.4A mock-only allocation specification is implemented, and its Phase
 - sanitized adapter error responses, request IDs, and operation logging;
 - production-disabled interactive API documentation;
 - a hardened ARM64 container definition and BlueField compose configuration;
+- read-only host VF resolution and dry-run attachment-planning reference tools;
 - unit, API, container-contract, and fake-CLI smoke tests.
 
 The native ARM64 image was built and validated on `bluefield3-101` in both
@@ -76,7 +77,7 @@ mypy
 pytest
 ```
 
-The current baseline is 203 passing tests with Ruff and strict mypy also
+The current baseline is 237 passing tests with Ruff and strict mypy also
 passing.
 
 ## Phase 6.2 host-side VF-to-PCI resolver
@@ -124,6 +125,26 @@ only in-memory mock state: uplink port 0 was excluded, idempotent replay
 returned the same result, and conflicting key reuse was rejected. Real
 allocation remains disabled in CLI mode, and no real eSwitch mutation was
 performed.
+
+## Phase 6.5A host-side attachment planner
+
+The read-only
+[host-side attachment planner](docs/vf-attachment-planner.md) validates a
+previously captured `PORT_ATTACHED` allocation response, passes its
+host/PF/VF identity to the existing resolver, and emits a deterministic dry-run
+plan. It consumes a trusted local file and never calls the API, Libvirt,
+BlueField, Docker, or a VM. Its topology result neither proves availability nor
+authorizes attachment, and rollback and reconciliation remain orchestration
+responsibilities.
+
+```bash
+python -m host_tools.vf_attachment_planner \
+  --allocation-file examples/allocation-result.example.json \
+  --mapping-file examples/bluefield-pf-map.example.toml \
+  --sysfs-root /path/to/fake-or-read-only-sysfs/devices
+```
+
+The host tool and examples remain outside the API wheel and container.
 
 ## Phase 6 prerequisites
 

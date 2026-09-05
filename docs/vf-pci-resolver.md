@@ -84,6 +84,12 @@ The output intentionally has no `available`, `unused`, `reserved`, or
 `safe_to_attach` field. Successful resolution proves identity only, not that a
 VF is free or reserved.
 
+Phase 6.5A also provides
+[`host_tools.vf_attachment_planner`](vf-attachment-planner.md), which validates
+a captured allocation response and delegates this same lookup to the resolver.
+The planner does not duplicate mapping or sysfs logic and adds no attachment
+capability.
+
 ## Observed zona-01 mapping
 
 The verified host/PF pair `(host=1, pf=0)` maps to PF `0000:84:00.0` on

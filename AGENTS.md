@@ -312,6 +312,26 @@ locking/fencing, authoritative daemon error semantics, approved isolated test
 resources, rollback ownership, secure transport, and explicit mutation
 approval are complete.
 
+## Phase 6.5A host attachment planner boundary
+
+`host_tools.vf_attachment_planner` is a read-only KVM-host reference tool. It
+accepts an exact captured allocation-result JSON object in `PORT_ATTACHED`
+state, validates its UUID, idempotency key, bounded identities, and non-uplink
+port, then delegates PF/VF topology lookup to `host_tools.vf_pci_resolver`.
+It must consume a trusted local file and must never call the Integration API,
+execute a command, modify sysfs, bind a device, access VFIO, or attach a VM.
+
+Planner output is deterministic topology evidence only. It must state that no
+VM attachment or PCI binding occurred, omit `safe_to_attach`, and never be
+interpreted as availability, reservation, ownership, or attachment
+authorization. Expected input and resolver failures use stable structured
+codes and exit status 1 without exposing the full input document.
+
+The planner, captured-response examples, host mapping, tests, and documentation
+must remain outside the Integration API wheel and BlueField image. Actual
+CloudStack/Libvirt attachment, rollback, and reconciliation remain
+unimplemented orchestrator responsibilities.
+
 ## Development commands
 
 Install:

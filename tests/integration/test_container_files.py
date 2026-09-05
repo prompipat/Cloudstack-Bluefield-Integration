@@ -148,6 +148,8 @@ def test_host_resolver_is_excluded_from_api_package_and_image_context() -> None:
     assert "examples" not in dockerfile
     assert "host_tools" in dockerignore
     assert "examples" in dockerignore
+    assert "vf_attachment_planner" not in dockerfile
+    assert "allocation-result.example.json" not in dockerfile
     assert 'where = ["src"]' in pyproject
 
 
