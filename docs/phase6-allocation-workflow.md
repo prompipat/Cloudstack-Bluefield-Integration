@@ -15,6 +15,65 @@ before an adapter call. The implementation uses development-only in-memory
 persistence and a process-local lock; neither is safe across processes,
 restarts, or replicas. No real mutation has been validated.
 
+## Phase 6.4B ARM64 mock-runtime validation (2026-09-05)
+
+The Phase 6.4A executable specification was validated manually in an isolated
+mock container on BlueField ARM64. The native `linux/arm64` image
+`cloudstack-bluefield-integration:phase64b-mock` built successfully with
+Docker Buildx; Buildx was required because the legacy builder did not support
+the Dockerfile's `COPY --chmod` instruction. The image ran with UID/GID
+10001, entrypoint `/usr/local/bin/integration-api-entrypoint`, and no API token
+in image metadata or history.
+
+The container `integration-api-phase64b-mock` used mock mode, bridge
+networking, and only the loopback binding `127.0.0.1:18082`. It was not
+privileged, had a read-only root filesystem, dropped all capabilities, enabled
+no-new-privileges, and used the hardened 16 MiB `/tmp` tmpfs. It had no bind
+mounts: no real `eswitchctl`, control socket, Docker socket, hugepages, host
+devices, or eSwitch configuration was exposed. The container became healthy;
+liveness and readiness returned HTTP 200, missing Bearer authentication
+returned HTTP 401, and a valid test credential allowed the mock query route.
+
+### Validated mock workflow
+
+`MockESwitchAdapter` starts with mock ports but no vSwitches. An authenticated
+request therefore created mock vSwitch 101 before allocation. Creation
+returned HTTP 201. The first allocation with a fresh idempotency key returned
+HTTP 201 in `PORT_ATTACHED` state and selected mock port 1 with host 1, PF 0,
+and VF index 0. Uplink/parent port 0 was not selected, and the mock
+available-port query no longer listed port 1.
+
+Replaying the identical request and key returned HTTP 200 with an identical
+response. Reusing the key with a different request returned HTTP 409 and
+`idempotency_conflict`. Attempts against a nonexistent mock vSwitch were
+non-success responses and are not successful allocation evidence. Replaying
+such a failed request returned the same generic failure response.
+
+When a test token is held in a differently named shell variable, Docker must
+receive an explicit name mapping:
+
+```bash
+--env "INTEGRATION_API_TOKEN=${PHASE64B_TOKEN}"
+```
+
+`--env INTEGRATION_API_TOKEN` only forwards a host variable already named
+`INTEGRATION_API_TOKEN`; it does not map `PHASE64B_TOKEN` and produced an empty
+value in this validation. No real token value belongs in documentation.
+
+All creation and allocation above mutated only the adapter's in-memory mock
+state. Real `vs-list` and `list-port-available` results were byte-for-byte
+unchanged before and after, with matching SHA-256 values. The independent
+daemon remained running and healthy with its observed counts unchanged. No
+real create, delete, attach, detach, binding, sysfs, VF, VM, or CloudStack
+mutation occurred.
+
+Cleanup removed the isolated container, temporary token, and temporary result
+files. The mock image was intentionally retained for possible repeat testing;
+the independent daemon container was neither stopped nor modified. This result
+does not make in-memory persistence or process-local locking production-safe,
+does not enable allocation in CLI mode, and does not satisfy the production
+gates later in this document.
+
 ## 1. Scope and non-goals
 
 The proposed workflow coordinates a CloudStack request with BlueField port

@@ -97,6 +97,36 @@ Query-only runtime validation completed successfully on `bluefield3-101`:
 - `docker compose down` removed only the Integration API container and network;
 - no real create, delete, attach, or detach command was executed.
 
+## Phase 6.4B mock-runtime outcome
+
+On 2026-09-05, the Phase 6.4A allocation specification passed isolated native
+ARM64 mock-runtime validation. Docker Buildx successfully built
+`cloudstack-bluefield-integration:phase64b-mock`; the legacy builder was not
+suitable because it did not support the Dockerfile's `COPY --chmod`. The
+runtime used UID/GID 10001 and the expected entrypoint, and the image metadata
+and history contained no API token.
+
+The mock container was bound only to `127.0.0.1:18082` with bridge networking,
+a read-only root filesystem, all capabilities dropped, no-new-privileges, and
+the hardened 16 MiB `/tmp` tmpfs. It had no bind mounts and therefore no
+access to the real executable, control socket, Docker socket, hugepages, host
+devices, or eSwitch configuration. Health checks passed, unauthenticated API
+access was rejected, and authenticated mock queries succeeded.
+
+Because the mock adapter initially has no vSwitch, the test created mock
+vSwitch 101 before allocating. The mock-only allocation selected representor
+port 1 rather than uplink port 0, removed it from mock availability, replayed
+idempotently, and rejected conflicting key reuse. These were in-memory mock
+mutations only. Real vSwitch and available-port query results and their
+SHA-256 checksums were unchanged, while the independent daemon remained
+running and healthy with 12 ports, 4 assigned, 8 available, one vSwitch, and
+4 FDB entries. No real eSwitch, VF, VM, sysfs, or CloudStack mutation occurred.
+
+The isolated container and temporary validation artifacts were removed; the
+mock image was retained. CLI allocation remains disabled. This validation
+does not alter the production gates below or make process-local locking and
+in-memory persistence suitable for production.
+
 ## Phase 6 prerequisites
 
 Before real mutation validation or CloudStack integration, obtain explicit

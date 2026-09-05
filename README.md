@@ -5,7 +5,9 @@ eSwitch Management.
 
 ## Current status
 
-Phase 6.4A mock-only allocation specification is implemented. The repository contains:
+Phase 6.4A mock-only allocation specification is implemented, and its Phase
+6.4B isolated ARM64 mock-runtime validation completed successfully on
+2026-09-05. The repository contains:
 
 - strict application and adapter configuration;
 - validated request and response models;
@@ -114,6 +116,14 @@ validated.
 The in-memory store and process-local lock are not safe across processes,
 restarts, or replicas. They are executable test/development behavior, not a
 production source of truth or distributed lock.
+
+Phase 6.4B verified the mock workflow in a hardened, loopback-only ARM64
+container. The mock adapter starts with ports but no vSwitches, so the test
+first created mock vSwitch 101 and then allocated mock port 1. This changed
+only in-memory mock state: uplink port 0 was excluded, idempotent replay
+returned the same result, and conflicting key reuse was rejected. Real
+allocation remains disabled in CLI mode, and no real eSwitch mutation was
+performed.
 
 ## Phase 6 prerequisites
 

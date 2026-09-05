@@ -254,6 +254,18 @@ docker rm eswitch-api-mock-smoke
 
 Expected bodies: `{"status":"live"}` and `{"status":"ready"}`.
 
+For an isolated `docker run` test that holds its temporary token in a
+differently named source variable, map the name explicitly:
+
+```bash
+--env "INTEGRATION_API_TOKEN=${PHASE64B_TOKEN}"
+```
+
+Do not use `--env INTEGRATION_API_TOKEN` unless that exact variable is already
+set and exported in the host shell. That form does not copy the value from
+`PHASE64B_TOKEN` and can inject an empty token. Never place the token value in
+a committed command or document.
+
 ## 7. Fake mutation-rejection test
 
 ### On bluefield3-101
