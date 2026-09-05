@@ -5,7 +5,7 @@ eSwitch Management.
 
 ## Current status
 
-Phase 5 query-only runtime validation is complete. The repository contains:
+Phase 6.2 read-only host resolver validation is complete. The repository contains:
 
 - strict application and adapter configuration;
 - validated request and response models;
@@ -95,7 +95,17 @@ The committed mapping is deliberately generic. A real compute host should
 install its site-specific mapping at
 `/etc/cloudstack/bluefield-pf-map.toml`. Resolution reports identity metadata
 only; it does not reserve a VF or establish that one is unused or safe to
-attach.
+attach. On 2026-09-05, the resolver succeeded against `zona-01` read-only
+sysfs for `(host=1, pf=0, vf_index=4)` and returned the verified VF identity;
+checksum and symlink checks confirmed no inspected host state changed.
+
+## Phase 6.3 allocation workflow design
+
+The documentation-only
+[Phase 6.3 allocation workflow](docs/phase6-allocation-workflow.md) defines the
+future attach-as-reservation sequence, durable idempotency, concurrency model,
+compensation, reconciliation, proposed API contracts, and approval gates. It
+does not authorize or implement mutation operations.
 
 ## Phase 6 prerequisites
 

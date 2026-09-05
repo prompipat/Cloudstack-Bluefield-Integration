@@ -113,6 +113,24 @@ the query-only candidate index 4 resolved to `0000:84:00.6`, driver
 `mlx5_vfio_pci`, and single-device IOMMU group 137. This observation is not a
 reservation or a claim that the VF remains unused.
 
+## Manual real-host validation
+
+On 2026-09-05, the resolver was run manually on `zona-01` against the real
+read-only `/sys/bus/pci/devices` tree with `host=1`, `pf=0`, and `vf_index=4`.
+The configured PF `0000:84:00.0` resolved successfully to VF
+`0000:84:00.6`, driver `mlx5_vfio_pci`, IOMMU group 137, vendor `0x15b3`, and
+device `0x101e`; the command exited 0.
+
+Checksums for `sriov_totalvfs`, vendor, and device files were unchanged, as
+were the `virtfn4` and `physfn` links. Existing VMs remained running with VF
+indices 2 and 3 on their previously observed PCI functions. No bind, unbind,
+reservation, attach, detach, or VM operation occurred.
+
+Negative checks also behaved as designed: VF index 16 returned
+`invalid_vf_range` with exit status 1, and host identity 99 returned
+`missing_mapping` with exit status 1. No secret, management address, MAC
+address, or full operational log is recorded here.
+
 ## Future CloudStack integration
 
 A later KVM Agent implementation can reuse this sequence after CloudStack
