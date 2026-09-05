@@ -158,6 +158,16 @@ Actual CloudStack/KVM Agent and Libvirt integration remains unimplemented. Real
 allocation, VM attachment, compensation, and reconciliation require durable
 ownership evidence and explicit approval.
 
+## Phase 6.6 CloudStack/KVM integration audit
+
+The documentation-only
+[CloudStack/KVM integration design](docs/cloudstack-kvm-integration-design.md)
+audits the pinned CloudStack revision and identifies source-backed lifecycle,
+Agent, KVM, persistence, and fencing integration points. The historical
+generic PCI-passthrough commit is not present in the audited revision; the
+current GPU hostdev and OVS-DPDK paths are precedents, not BlueField support.
+No CloudStack or KVM Agent behavior has been implemented or validated.
+
 ## Phase 6 prerequisites
 
 Before any mutation validation or CloudStack integration begins:
