@@ -146,6 +146,18 @@ python -m host_tools.vf_attachment_planner \
 
 The host tool and examples remain outside the API wheel and container.
 
+Phase 6.5B manual read-only validation completed on the `zona-01` compute host
+on 2026-09-05. A deliberately synthetic `PORT_ATTACHED` document exercised
+identity validation and resolved the previously verified host topology. The
+planner reported no VM attachment or PCI binding, rejected port 0 and an
+unsupported state with stable errors, and left the inspected topology
+unchanged. This was not a real allocation and does not establish that any port
+or VF is available, reserved, or safe to attach.
+
+Actual CloudStack/KVM Agent and Libvirt integration remains unimplemented. Real
+allocation, VM attachment, compensation, and reconciliation require durable
+ownership evidence and explicit approval.
+
 ## Phase 6 prerequisites
 
 Before any mutation validation or CloudStack integration begins:

@@ -108,6 +108,38 @@ Mapping and topology failures retain the resolver's codes, including
 `mismatched_physfn`. Expected invalid input does not produce a traceback or
 include the full input document in its message.
 
+## Phase 6.5B real-host read-only validation (2026-09-05)
+
+The planner was manually validated on the `zona-01` compute host using the
+project virtual environment and temporary allocation, mapping, evidence, and
+output files. The allocation document was explicitly synthetic: it was not
+returned by a real allocation request, and its `PORT_ATTACHED` value was used
+only to exercise the planner contract. Its correlation of DPDK port 5 with
+host 1, PF 0, and VF index 4 does not prove that the port was attached,
+reserved, available, or safe to attach.
+
+The successful run exited 0 in `dry_run` mode and preserved port 5, host 1, PF
+0, and VF index 4. The existing resolver returned the previously verified PF
+and VF PCI topology, including the `mlx5_vfio_pci` driver and matching IOMMU,
+vendor, and device metadata. Output reported `vm_attachment_performed` and
+`pci_binding_changed` as false, omitted `safe_to_attach`, and included all four
+warnings about topology-only evidence, availability, VM attachment, and
+reservation or release.
+
+Two negative checks exited 1 with deterministic JSON and no traceback: port 0
+returned `unsafe_port_identity`, and state `ACTIVE` returned
+`unsupported_allocation_state`.
+
+SHA-256 checks confirmed that the inspected PF/VF metadata was unchanged, as
+were `virtfn4` and VF `physfn` resolution. No API or network request, BlueField
+or `eswitchctl` command, Libvirt operation, VM inspection, driver bind or
+unbind, VFIO access, or sysfs write occurred. All temporary validation files
+were removed afterward.
+
+This result validates read-only parsing and topology planning only. It is not
+attachment approval. Real allocation, VM attachment, compensation, and
+reconciliation still require durable ownership evidence and explicit approval.
+
 ## Isolation and future integration
 
 The module, example input, mapping examples, fake sysfs, and this documentation

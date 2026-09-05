@@ -90,6 +90,27 @@ eSwitch and VM observations, advancing to `VM_ATTACHING`, and handling
 rollback or reconciliation. The reference planner remains outside the
 BlueField API package and image.
 
+## Phase 6.5B real-host read-only validation (2026-09-05)
+
+The dry-run planner completed manual read-only validation on the `zona-01`
+compute host using temporary files. Its allocation input was synthetic, not a
+response from a real allocation operation. `PORT_ATTACHED` therefore described
+only the input workflow state required by the planner; it was not evidence of
+actual eSwitch membership or reservation.
+
+The planner preserved the synthetic port 5, host 1, PF 0, and VF index 4
+identity and resolved it against the previously verified host topology. It
+reported no VM attachment or PCI binding, omitted `safe_to_attach`, and emitted
+all topology and non-mutation warnings. Port 0 and `ACTIVE` state negative
+checks returned their stable planner codes without tracebacks. File checksums
+and `virtfn4`/`physfn` resolution were unchanged, and no API, network,
+eSwitch, VM, driver, VFIO, or sysfs mutation occurred.
+
+This validation adds no new durable workflow state and authorizes no next-step
+mutation. CloudStack/KVM Agent and Libvirt integration remains unimplemented;
+real allocation, attachment, compensation, and reconciliation continue to
+require durable ownership and the explicit approval gates in this document.
+
 ## 1. Scope and non-goals
 
 The proposed workflow coordinates a CloudStack request with BlueField port
