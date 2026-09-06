@@ -1,10 +1,14 @@
-# Host-side VF-to-PCI resolver
+# Optional host-side VF-to-PCI resolver reference
+
+> **Outside the Integration API scope.** This tool is retained for optional
+> CloudStack-team use. The Integration API container neither includes it nor
+> performs compute-host PCI resolution.
 
 ## Purpose and boundary
 
-`host_tools.vf_pci_resolver` is a read-only Python reference for future Apache
-CloudStack KVM Agent integration. The BlueField Integration API returns a DPDK
-`port_id` plus `host`, `pf`, and `vf_index` for representors. It does not and
+`host_tools.vf_pci_resolver` is a read-only Python reference that the Apache
+CloudStack team may adopt independently. The BlueField Integration API returns
+a DPDK `port_id` plus `host`, `pf`, and `vf_index` for representors. It does not and
 must not resolve an x86 PCI address because `/sys/bus/pci/devices` is local to
 the selected KVM Compute Host. A CloudStack Management Server cannot perform
 this lookup on behalf of a different compute host, even though `zona-01`

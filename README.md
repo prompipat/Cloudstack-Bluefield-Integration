@@ -3,11 +3,16 @@
 REST integration service between Apache CloudStack and NVIDIA BlueField
 eSwitch Management.
 
+The confirmed production boundary is the authenticated REST-to-`eswitchctl`
+service described in the [Integration API scope](docs/integration-api-scope.md).
+CloudStack, KVM Agent, Libvirt, database, and VM lifecycle changes are outside
+this repository's implementation scope.
+
 ## Current status
 
-Phase 6.4A mock-only allocation specification is implemented, and its Phase
-6.4B isolated ARM64 mock-runtime validation completed successfully on
-2026-09-05. The repository contains:
+The required production REST-to-CLI operations are implemented and tested.
+Optional Phase 6 mock allocation and host-tool research is retained outside the
+production boundary. The repository contains:
 
 - strict application and adapter configuration;
 - validated request and response models;
@@ -80,10 +85,10 @@ pytest
 The current baseline is 237 passing tests with Ruff and strict mypy also
 passing.
 
-## Phase 6.2 host-side VF-to-PCI resolver
+## Optional host-side VF-to-PCI resolver reference
 
-The read-only reference resolver lives outside the BlueField API package and
-container. It demonstrates the future KVM Agent boundary: translate the
+The optional read-only reference resolver lives outside the BlueField API
+package and container. It illustrates CloudStack-owned translation of the
 `host`, `pf`, and `vf_index` returned by the API through a compute-host-local
 PF mapping and sysfs `virtfnN` link. See the
 [VF-to-PCI resolver guide](docs/vf-pci-resolver.md).
@@ -102,7 +107,7 @@ attach. On 2026-09-05, the resolver succeeded against `zona-01` read-only
 sysfs for `(host=1, pf=0, vf_index=4)` and returned the verified VF identity;
 checksum and symlink checks confirmed no inspected host state changed.
 
-## Phase 6.3 allocation workflow design
+## Optional allocation workflow research
 
 The documentation-only
 [Phase 6.3 allocation workflow](docs/phase6-allocation-workflow.md) defines the
@@ -110,9 +115,12 @@ future attach-as-reservation sequence, durable idempotency, concurrency model,
 compensation, reconciliation, proposed API contracts, and approval gates. Phase 6.4A now implements that specification with typed domain models,
 legal transitions, injected narrow interfaces, development-only in-memory
 idempotency, and process-local synchronization. The authenticated allocation
-endpoint can mutate only `MockESwitchAdapter`; CLI mode returns HTTP 503 with
-`allocation_mock_only` before invoking an adapter. No real mutation has been
-validated.
+atomic allocation endpoint can mutate only `MockESwitchAdapter`; CLI mode
+returns HTTP 503 with `allocation_mock_only` before invoking an adapter. The
+separate required create, delete, attach, and detach endpoints are
+mutation-capable with the CLI adapter. No real eSwitch mutation was performed
+during this validation, and those endpoints require explicit authorization,
+approved isolated resources, and a rollback procedure before use.
 
 The in-memory store and process-local lock are not safe across processes,
 restarts, or replicas. They are executable test/development behavior, not a
@@ -122,11 +130,12 @@ Phase 6.4B verified the mock workflow in a hardened, loopback-only ARM64
 container. The mock adapter starts with ports but no vSwitches, so the test
 first created mock vSwitch 101 and then allocated mock port 1. This changed
 only in-memory mock state: uplink port 0 was excluded, idempotent replay
-returned the same result, and conflicting key reuse was rejected. Real
-allocation remains disabled in CLI mode, and no real eSwitch mutation was
-performed.
+returned the same result, and conflicting key reuse was rejected. Only the
+atomic allocation endpoint remains disabled in CLI mode. The required direct
+mutation endpoints remain CLI-capable, but no real eSwitch mutation was
+performed during this validation.
 
-## Phase 6.5A host-side attachment planner
+## Optional host-side attachment planner reference
 
 The read-only
 [host-side attachment planner](docs/vf-attachment-planner.md) validates a
@@ -158,19 +167,19 @@ Actual CloudStack/KVM Agent and Libvirt integration remains unimplemented. Real
 allocation, VM attachment, compensation, and reconciliation require durable
 ownership evidence and explicit approval.
 
-## Phase 6.6 CloudStack/KVM integration audit
+## Optional CloudStack/KVM integration research
 
 The documentation-only
 [CloudStack/KVM integration design](docs/cloudstack-kvm-integration-design.md)
-audits the pinned CloudStack revision and identifies source-backed lifecycle,
-Agent, KVM, persistence, and fencing integration points. The historical
-generic PCI-passthrough commit is not present in the audited revision; the
-current GPU hostdev and OVS-DPDK paths are precedents, not BlueField support.
-No CloudStack or KVM Agent behavior has been implemented or validated.
+is retained only as an optional future-reference appendix for the CloudStack
+team. It is not the current project plan and does not place CloudStack, KVM
+Agent, Libvirt, database, or VM lifecycle changes in this project's scope. No
+such behavior has been implemented or validated here.
 
 ## Phase 6 prerequisites
 
-Before any mutation validation or CloudStack integration begins:
+Before any real mutation validation or separately owned CloudStack integration
+begins:
 
 - obtain explicit approval and an operational change window for real
   `vs-create`, `vs-delete`, `vs-port-attach`, or `vs-port-detach` testing;

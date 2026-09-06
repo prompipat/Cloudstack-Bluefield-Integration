@@ -1,19 +1,28 @@
-# Phase 6.3: allocation and VM passthrough workflow design
+# Optional research: allocation and VM passthrough workflow design
+
+> **Not a current production requirement.** The confirmed Integration API
+> accepts CloudStack-selected vSwitch and port identities and maps those REST
+> operations to allowlisted `eswitchctl` commands. CloudStack owns selection,
+> persistence, VM lifecycle, PCI passthrough, rollback, and reconciliation.
+> The atomic-allocation material below is retained as optional research; its
+> executable endpoint remains mock-only and disabled in CLI mode.
 
 ## Status
 
-Phase 6.4A implements an executable mock/fake specification of the allocation
-portion of this design. It does not authorize real mutations. No real
-`vs-create`, `vs-delete`, `vs-port-attach`, `vs-port-detach`, Libvirt
-operation, VF binding, or VM operation may be tested without the explicit
-gates in this document.
+Phase 6.4A implements an executable mock/fake specification of the atomic
+allocation portion of this design. Only that allocation endpoint is disabled
+in CLI mode. The required direct create, delete, attach, and detach endpoints
+are mutation-capable with the CLI adapter, but no real eSwitch mutation was
+performed during this validation. They must not be invoked without explicit
+authorization, approved isolated resources, and a rollback procedure. No
+Libvirt operation, VF binding, or VM operation is authorized here.
 
 The authenticated endpoint is available only when the application is in mock
 mode with an injected mock allocation service or concrete `MockESwitchAdapter`.
 CLI mode fails closed with HTTP 503 and stable code `allocation_mock_only`
 before an adapter call. The implementation uses development-only in-memory
 persistence and a process-local lock; neither is safe across processes,
-restarts, or replicas. No real mutation has been validated.
+restarts, or replicas. No real atomic allocation mutation has been validated.
 
 ## Phase 6.4B ARM64 mock-runtime validation (2026-09-05)
 

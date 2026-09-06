@@ -1,10 +1,20 @@
-# Phase 6.6: CloudStack and KVM Agent integration design
+# Optional appendix: CloudStack and KVM Agent integration research
+
+> **Out of current project scope.** The confirmed Integration Layer ends at
+> the authenticated BlueField REST API and allowlisted `eswitchctl` adapter.
+> The CloudStack team owns every CloudStack, KVM Agent, Libvirt, persistence,
+> PCI-passthrough, VM-lifecycle, and rollback decision. Nothing in this
+> appendix is a current Integration API requirement or implementation plan.
+
+This audit is preserved as optional research that the CloudStack team may use
+independently. The authoritative current boundary is
+[`integration-api-scope.md`](integration-api-scope.md).
 
 ## 1. Scope and audited revisions
 
-This is a source audit and design, not an implementation. It identifies where
-the BlueField workflow could connect to CloudStack without changing CloudStack,
-the KVM Agent, Libvirt, the Integration API, or the eSwitch.
+This was a source audit and hypothetical future design, not an implementation.
+It identifies possible CloudStack-owned integration points without proposing
+changes in the current Integration API project.
 
 The audit used these fixed revisions:
 
@@ -115,9 +125,10 @@ This path supplies useful patterns, but BlueField representors are not GPUs.
 Reusing the GPU tables or DTOs would hide the distinct eSwitch membership,
 host topology, ownership and compensation semantics.
 
-### Recommended component ownership
+### Optional future ownership model
 
-This is a design recommendation, not current CloudStack behavior:
+This research scenario is not current CloudStack behavior and is not part of
+the Integration API scope:
 
 - **CloudStack Management Server:** accept policy-enabled requests; choose the
   compute host; own durable desired state, idempotency, allocation ownership,
@@ -469,7 +480,9 @@ require operator reconciliation.
 
 ## 14. API and security boundary
 
-Real allocation remains disabled in Integration API CLI mode. The existing
+Only the atomic allocation endpoint remains disabled in Integration API CLI
+mode. The required direct mutation endpoints are CLI-capable and require
+explicit authorization, isolated resources, and rollback before use. The existing
 Bearer token authenticates but does not encrypt HTTP. Production traffic must
 use an approved protected management transport with TLS; plain Bearer HTTP
 over an untrusted network is prohibited.
@@ -494,7 +507,7 @@ command access. VF resolution remains inside the selected KVM host boundary.
 Sensitive headers, credentials, full external responses and guest identifiers
 must not be logged.
 
-## 15. Safe implementation phases
+## 15. Optional CloudStack-team research phases
 
 1. **Contracts and fake-agent tests:** add typed BlueField allocation/device
    DTOs, commands and answers; test lifecycle orchestration entirely with fake
@@ -514,7 +527,8 @@ must not be logged.
 7. **Production hardening:** TLS/mTLS, dedicated socket group, monitoring,
    audit retention, capacity policy, runbooks and staged rollout.
 
-Every phase that introduces mutation requires separate explicit approval.
+These are suggestions only for a separately owned CloudStack initiative. Every
+phase that introduces mutation would require separate explicit approval.
 
 ## 16. Non-goals
 

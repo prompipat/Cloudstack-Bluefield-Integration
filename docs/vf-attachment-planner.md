@@ -1,4 +1,8 @@
-# Host-side dry-run VF attachment planner
+# Optional host-side dry-run VF attachment planner reference
+
+> **Outside the Integration API scope.** This tool remains an optional
+> CloudStack-team reference and is not shipped in the BlueField API container.
+> It does not define current CloudStack, KVM Agent, or Libvirt work.
 
 ## Purpose and trust boundary
 

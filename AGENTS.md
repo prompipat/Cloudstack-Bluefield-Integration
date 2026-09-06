@@ -5,13 +5,21 @@
 Build a Python FastAPI service that provides a REST interface between
 Apache CloudStack and the NVIDIA BlueField eSwitch Management daemon.
 
+The confirmed implementation boundary is only CloudStack client ->
+authenticated Integration API -> allowlisted `eswitchctl` -> existing daemon.
+CloudStack and its KVM Agent own operation timing, VM/NIC lifecycle, port
+selection, host PCI resolution, passthrough, persistence, and rollback. Do not
+modify CloudStack, the KVM Agent, Libvirt, CloudStack schema, or VM lifecycle
+code in this project. See `docs/integration-api-scope.md`.
+
 ## System responsibilities
 
 ### Apache CloudStack
 
 - Calls the Integration API through REST/JSON.
 - Requests creation and deletion of virtual switches.
-- Requests allocation, attachment, and detachment of DPDK ports.
+- Lists available ports and selects the requested vSwitch and port.
+- Requests attachment and detachment of the selected DPDK port.
 - Receives `host`, `pf`, and `vf_index` from the Integration API.
 - Maps `vf_index` to the host PCI address through Linux sysfs.
 - Uses the resolved PCI address for VM PCI passthrough.
@@ -97,13 +105,13 @@ GLIBC 2.36.
 - `POST /api/v1/vswitches/{vswitch_id}/ports`
 - `DELETE /api/v1/vswitches/{vswitch_id}/ports/{port_id}`
 
-Future atomic allocation endpoint:
+Optional mock-only atomic allocation research endpoint:
 
 - `POST /api/v1/vswitches/{vswitch_id}/ports/allocate`
 
-The atomic allocation endpoint should select and attach an available port
-inside one protected operation to prevent concurrent requests from selecting
-the same port.
+This endpoint specifies selecting and attaching an available port inside one
+protected operation. It is not a required production operation and remains
+unavailable in CLI mode.
 
 ## Canonical eswitchctl commands
 
@@ -279,24 +287,30 @@ approved secure transport is confirmed. Never log the Authorization header or
 place the token in URLs, request bodies, command-line arguments, committed
 files, or container images.
 
-## Host-side VF-to-PCI resolver boundary
+## Optional host-side VF-to-PCI resolver reference
 
-The reference module `host_tools.vf_pci_resolver` runs on a selected KVM
-Compute Host, never inside the BlueField Integration API container. It reads a
+This tooling is outside the Integration API scope and is retained only for the
+CloudStack team's optional use. The reference module
+`host_tools.vf_pci_resolver` runs on a selected KVM Compute Host, never inside
+the BlueField Integration API container. It reads a
 site-specific `/etc/cloudstack/bluefield-pf-map.toml` and host-local sysfs to
 resolve `(host, pf, vf_index)` to a PCI BDF. It must remain read-only and must
 not infer reservation, availability, or attachment safety. The committed
 example mapping is generic and is not production configuration.
 
 The module, mapping examples, fake sysfs tests, and host-side documentation
-must remain outside the API wheel and container. Future CloudStack integration
-belongs in the KVM Agent and requires an atomic allocation/reservation design;
-this repository must not modify CloudStack during the reference-tool phase.
+must remain outside the API wheel and container. Any adoption or translation
+belongs to the CloudStack team; this repository must not modify CloudStack.
 
-## Phase 6.4A allocation safety
+The required create, delete, attach, and detach endpoints are mutation-capable
+in CLI mode. Do not invoke them against a real eSwitch without explicit
+authorization, approved isolated resources, and a rollback procedure.
 
-`POST /api/v1/vswitches/{vswitch_id}/ports/allocate` is an executable
-mock/fake specification only. It must remain authenticated and fail closed with
+## Optional Phase 6.4A allocation research
+
+`POST /api/v1/vswitches/{vswitch_id}/ports/allocate` is an optional executable
+mock/fake research specification only, not a required production operation. It
+must remain authenticated and fail closed with
 `allocation_mock_only` in CLI mode before any adapter call. Its in-memory store
 and process-local lock are development mechanisms, not durable persistence,
 distributed locking, or fencing.
@@ -312,7 +326,7 @@ locking/fencing, authoritative daemon error semantics, approved isolated test
 resources, rollback ownership, secure transport, and explicit mutation
 approval are complete.
 
-## Phase 6.5A host attachment planner boundary
+## Optional Phase 6.5A host attachment planner reference
 
 `host_tools.vf_attachment_planner` is a read-only KVM-host reference tool. It
 accepts an exact captured allocation-result JSON object in `PORT_ATTACHED`
