@@ -20,7 +20,7 @@ production boundary. The repository contains:
   and uplink-port responses;
 - deterministic mock and allowlisted CLI adapters;
 - a FastAPI application with separate liveness and readiness endpoints;
-- all initial vSwitch and port REST endpoints;
+- all required vSwitch and port REST endpoints, including read-only membership;
 - router-level static Bearer authentication for all operational API routes;
 - sanitized adapter error responses, request IDs, and operation logging;
 - production-disabled interactive API documentation;
@@ -34,6 +34,14 @@ mock and CLI modes. Liveness, readiness, Bearer authentication, mounted
 parsing all passed. The eSwitch state was unchanged, and the independent
 `eswitch-management` container remained running and healthy. Automated tests
 still never invoke the production executable or contact the BlueField daemon.
+
+## vSwitch membership observation
+
+Authenticated `GET /api/v1/vswitches` maps only to `eswitchctl vs-list` and
+returns deterministically ordered vSwitch and member-port IDs. It supports
+post-timeout observation but does not prove ownership or attachment safety.
+DPDK port IDs are runtime identities and must be refreshed after daemon
+restart; `host`/`pf`/`vf_index` is the stable representor mapping identity.
 
 ## Runtime architecture
 

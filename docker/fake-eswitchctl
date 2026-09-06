@@ -18,6 +18,11 @@ case "${1:-}" in
       'DPDK port 0 (uplink/parent)' \
       'DPDK port 1 (host=1 pf=0 vf=0)'
     ;;
+  vs-list)
+    printf '%s\n' \
+      'OK' \
+      'vs=101 ports=[0,1]'
+    ;;
   *)
     printf '%s\n' 'ERR code=2 message=Fake smoke executable rejects mutation commands' >&2
     exit 1

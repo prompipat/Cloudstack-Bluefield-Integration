@@ -5,6 +5,7 @@ from integration_api.adapters.parsers import (
     parse_mutation_response,
     parse_response_envelope,
     parse_status_response,
+    parse_vswitches,
 )
 from integration_api.core.exceptions import DaemonError, ResponseParseError
 from integration_api.models.responses import PortType
@@ -115,3 +116,38 @@ def test_parses_status_response() -> None:
 def test_rejects_malformed_status(output: str) -> None:
     with pytest.raises(ResponseParseError):
         parse_status_response(output)
+
+
+def test_parses_and_normalizes_vswitch_membership() -> None:
+    result = parse_vswitches("OK\nvs=200 ports=[4,3]\nvs=100 ports=[2,0,1]\n")
+
+    assert [item.model_dump(mode="json") for item in result] == [
+        {"vswitch_id": 100, "port_ids": [0, 1, 2]},
+        {"vswitch_id": 200, "port_ids": [3, 4]},
+    ]
+
+
+def test_parses_empty_vswitch_list() -> None:
+    assert parse_vswitches("OK\n") == []
+
+
+@pytest.mark.parametrize(
+    "output",
+    [
+        "OK\nvs=1 ports=[1]\nvs=1 ports=[2]\n",
+        "OK\nvs=1 ports=[2,2]\n",
+        "OK\nvs=0 ports=[]\n",
+        "OK\nvs=65536 ports=[]\n",
+        "OK\nvs=1 ports=[65536]\n",
+        "OK\nvs=-1 ports=[]\n",
+        "OK\nvs=1 ports=[-1]\n",
+        "OK\nvs=1 ports=[1,]\n",
+        "OK\nvs=1 ports=1\n",
+        "OK\nvs=1 ports=[] trailing\n",
+        "OK\nvs= ports=[]\n",
+        "OK\nunexpected\n",
+    ],
+)
+def test_rejects_invalid_vswitch_membership(output: str) -> None:
+    with pytest.raises(ResponseParseError):
+        parse_vswitches(output)

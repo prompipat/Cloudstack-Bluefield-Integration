@@ -50,6 +50,7 @@ def test_vswitch_and_port_api_lifecycle(client: TestClient) -> None:
     response = client.post("/api/v1/vswitches", json={"vswitch_id": 100})
     assert response.status_code == 201
     assert response.json() == {"vswitch_id": 100}
+    assert client.get("/api/v1/vswitches").json() == [{"vswitch_id": 100, "port_ids": []}]
 
     available = client.get("/api/v1/ports/available")
     assert available.status_code == 200
@@ -64,9 +65,12 @@ def test_vswitch_and_port_api_lifecycle(client: TestClient) -> None:
     attached = client.post("/api/v1/vswitches/100/ports", json={"port_id": 1})
     assert attached.status_code == 200
     assert attached.json() == {"vswitch_id": 100, "port_id": 1}
+    assert client.get("/api/v1/vswitches").json() == [{"vswitch_id": 100, "port_ids": [1]}]
 
     assert client.delete("/api/v1/vswitches/100/ports/1").status_code == 204
+    assert client.get("/api/v1/vswitches").json() == [{"vswitch_id": 100, "port_ids": []}]
     assert client.delete("/api/v1/vswitches/100").status_code == 204
+    assert client.get("/api/v1/vswitches").json() == []
 
 
 @pytest.mark.parametrize(
@@ -140,3 +144,25 @@ def test_invalid_request_id_is_replaced(client: TestClient) -> None:
 
     assert response.headers["X-Request-ID"] != "x" * 129
     assert response.headers["X-Request-ID"]
+
+
+def test_vswitch_query_is_available_in_cli_mode() -> None:
+    adapter = Mock()
+    adapter.list_vswitches.return_value = []
+    app = create_app(
+        settings=Settings(
+            eswitch_adapter_mode="cli",
+            integration_api_token=TEST_TOKEN,
+        ),
+        adapter=adapter,
+    )
+
+    with TestClient(app) as client:
+        response = client.get(
+            "/api/v1/vswitches",
+            headers={"Authorization": f"Bearer {TEST_TOKEN}"},
+        )
+
+    assert response.status_code == 200
+    assert response.json() == []
+    adapter.list_vswitches.assert_called_once_with()

@@ -63,6 +63,13 @@ def test_fake_cli_help_and_status_are_non_mutating() -> None:
     assert "state=running" in status_result.stdout
 
 
+def test_fake_cli_vswitch_list_is_non_mutating() -> None:
+    result = run_fake("vs-list")
+
+    assert result.returncode == 0
+    assert result.stdout == "OK\nvs=101 ports=[0,1]\n"
+
+
 def test_fake_cli_available_ports_cover_both_formats() -> None:
     result = run_fake("list-port-available")
 

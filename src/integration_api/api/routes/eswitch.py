@@ -15,6 +15,7 @@ from integration_api.models.responses import (
     AllocationResult,
     AvailablePort,
     PortAttachmentResult,
+    VSwitchMembership,
     VSwitchResult,
 )
 from integration_api.services.allocation import (
@@ -57,6 +58,11 @@ def readiness(adapter: AdapterDependency, response: Response) -> dict[str, str]:
 def create_vswitch(request: CreateVSwitchRequest, adapter: AdapterDependency) -> VSwitchResult:
     adapter.create_vswitch(request.vswitch_id)
     return VSwitchResult(vswitch_id=request.vswitch_id)
+
+
+@api_router.get("/vswitches", response_model=list[VSwitchMembership])
+def list_vswitches(adapter: AdapterDependency) -> list[VSwitchMembership]:
+    return adapter.list_vswitches()
 
 
 @api_router.delete("/vswitches/{vswitch_id}", status_code=status.HTTP_204_NO_CONTENT)

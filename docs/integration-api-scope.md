@@ -54,6 +54,7 @@ Arguments are passed as a list to mounted `/usr/local/bin/eswitchctl`.
 
 | REST operation | Exact `eswitchctl` arguments | Success |
 |---|---|---|
+| `GET /api/v1/vswitches` | `vs-list` | HTTP 200 with normalized membership |
 | `POST /api/v1/vswitches` with `{"vswitch_id": ID}` | `vs-create --id ID` | HTTP 201 |
 | `DELETE /api/v1/vswitches/{ID}` | `vs-delete --id ID` | HTTP 204 |
 | `GET /api/v1/ports/available` | `list-port-available` | HTTP 200 with normalized ports |
@@ -141,6 +142,11 @@ representors from uplinks and return `port_id`, `host`, `pf`, and
 `vf_index`; CloudStack selects a port and performs all host-local PCI work. A
 caller selecting a VM VF must reject uplink/parent entries and port 0.
 
+DPDK port IDs are runtime identities and must be refreshed after daemon
+restart. The `host`/`pf`/`vf_index` tuple is the stable representor mapping
+identity. Membership observation is not ownership authorization or proof that
+a port or VF is safe to attach.
+
 After timeout or transport failure, callers must not assume retrying a mutation
 is harmless. A stronger idempotency or transaction contract would require a
 separately approved API and authoritative daemon semantics.
@@ -151,8 +157,8 @@ All required operations are implemented:
 
 - API routes call the narrow `ESwitchAdapter` protocol;
 - `CliESwitchAdapter` constructs every exact argument list above;
-- parser tests cover `OK`, `ERR`, malformed output, status, representors,
-  and uplinks;
+- parser tests cover `OK`, `ERR`, malformed output, status, vSwitch
+  membership, representors, and uplinks;
 - CLI tests assert all command lists, `shell=False`, validation, timeout,
   executable, permission, exit-code, and readiness behavior;
 - API tests cover create/list/attach/detach/delete, authentication, validation,

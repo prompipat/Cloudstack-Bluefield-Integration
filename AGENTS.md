@@ -99,6 +99,7 @@ GLIBC 2.36.
 
 - `GET /health/live`
 - `GET /health/ready`
+- `GET /api/v1/vswitches`
 - `POST /api/v1/vswitches`
 - `DELETE /api/v1/vswitches/{vswitch_id}`
 - `GET /api/v1/ports/available`

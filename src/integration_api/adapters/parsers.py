@@ -2,7 +2,7 @@ import re
 from dataclasses import dataclass
 
 from integration_api.core.exceptions import DaemonError, ResponseParseError
-from integration_api.models.responses import AvailablePort, PortType
+from integration_api.models.responses import AvailablePort, PortType, VSwitchMembership
 
 _ERR_PATTERN = re.compile(r"^ERR code=(?P<code>-?\d+) message=(?P<message>.+)$")
 _REPRESENTOR_PATTERN = re.compile(
@@ -16,6 +16,7 @@ _STATUS_COUNTS_PATTERN = re.compile(
     r"^ports=(?P<ports>\d+) assigned=(?P<assigned>\d+) "
     r"available=(?P<available>\d+) vswitches=(?P<vswitches>\d+) fdb=(?P<fdb>\d+)$"
 )
+_VSWITCH_PATTERN = re.compile(r"^vs=(?P<vswitch>\d+) ports=\[(?P<ports>\d*(?:,\d+)*)\]$")
 
 
 @dataclass(frozen=True, slots=True)
@@ -91,6 +92,33 @@ def parse_available_ports(output: str) -> list[AvailablePort]:
         seen.add(port.port_id)
         ports.append(port)
     return ports
+
+
+def parse_vswitches(output: str) -> list[VSwitchMembership]:
+    envelope = parse_response_envelope(output)
+    memberships: list[VSwitchMembership] = []
+    seen_vswitches: set[int] = set()
+    for line in envelope.lines:
+        match = _VSWITCH_PATTERN.fullmatch(line)
+        if match is None:
+            raise ResponseParseError("malformed vSwitch response line")
+        vswitch_id = int(match.group("vswitch"))
+        port_text = match.group("ports")
+        port_ids = tuple(int(value) for value in port_text.split(",")) if port_text else ()
+        if len(set(port_ids)) != len(port_ids):
+            raise ResponseParseError("duplicate port ID in vSwitch response")
+        if vswitch_id in seen_vswitches:
+            raise ResponseParseError("duplicate vSwitch ID in vSwitch response")
+        try:
+            membership = VSwitchMembership(
+                vswitch_id=vswitch_id,
+                port_ids=tuple(sorted(port_ids)),
+            )
+        except ValueError as error:
+            raise ResponseParseError("vSwitch values are outside supported ranges") from error
+        seen_vswitches.add(vswitch_id)
+        memberships.append(membership)
+    return sorted(memberships, key=lambda membership: membership.vswitch_id)
 
 
 def parse_status_response(output: str) -> StatusResponse:

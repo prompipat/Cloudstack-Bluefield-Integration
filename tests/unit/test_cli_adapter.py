@@ -157,3 +157,17 @@ def test_rejects_invalid_arguments_before_subprocess(method: str, args: tuple[in
         getattr(adapter, method)(*args)
 
     runner.assert_not_called()
+
+
+def test_list_vswitches_uses_exact_argument_list_without_shell() -> None:
+    adapter, runner = adapter_with_result("OK\nvs=2 ports=[1,0]\n")
+
+    assert adapter.list_vswitches()[0].port_ids == (0, 1)
+    runner.assert_called_once_with(
+        ["/test/eswitchctl", "vs-list"],
+        capture_output=True,
+        text=True,
+        timeout=3.0,
+        check=False,
+        shell=False,
+    )

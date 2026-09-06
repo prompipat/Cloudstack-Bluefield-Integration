@@ -9,7 +9,7 @@ from integration_api.core.exceptions import (
     VSwitchAlreadyExistsError,
     VSwitchNotFoundError,
 )
-from integration_api.models.responses import AvailablePort, PortType
+from integration_api.models.responses import AvailablePort, PortType, VSwitchMembership
 
 
 def default_mock_ports() -> tuple[AvailablePort, ...]:
@@ -68,6 +68,14 @@ class MockESwitchAdapter:
                 raise VSwitchNotFoundError(f"vSwitch {vswitch_id} does not exist")
             for port_id in members:
                 del self._port_owners[port_id]
+
+    def list_vswitches(self) -> list[VSwitchMembership]:
+        with self._lock:
+            self._require_ready()
+            return [
+                VSwitchMembership(vswitch_id=vswitch_id, port_ids=tuple(sorted(port_ids)))
+                for vswitch_id, port_ids in sorted(self._vswitches.items())
+            ]
 
     def list_available_ports(self) -> list[AvailablePort]:
         with self._lock:

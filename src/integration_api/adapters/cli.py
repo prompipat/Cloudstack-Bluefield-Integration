@@ -7,6 +7,7 @@ from integration_api.adapters.parsers import (
     parse_mutation_response,
     parse_response_envelope,
     parse_status_response,
+    parse_vswitches,
 )
 from integration_api.core.exceptions import (
     AdapterError,
@@ -19,7 +20,7 @@ from integration_api.core.exceptions import (
     InvalidAdapterArgumentError,
     ResponseParseError,
 )
-from integration_api.models.responses import AvailablePort
+from integration_api.models.responses import AvailablePort, VSwitchMembership
 
 RunCommand = Callable[..., subprocess.CompletedProcess[str]]
 
@@ -98,6 +99,9 @@ class CliESwitchAdapter:
     def delete_vswitch(self, vswitch_id: int) -> None:
         _validate_vswitch_id(vswitch_id)
         parse_mutation_response(self._execute(("vs-delete", "--id", str(vswitch_id))))
+
+    def list_vswitches(self) -> list[VSwitchMembership]:
+        return parse_vswitches(self._execute(("vs-list",)))
 
     def list_available_ports(self) -> list[AvailablePort]:
         return parse_available_ports(self._execute(("list-port-available",)))

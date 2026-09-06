@@ -553,8 +553,8 @@ asynchronous semantics before implementation.
 
 1. Review this design with CloudStack, KVM, DOCA, networking, and operations
    owners; resolve every authority and lifecycle question.
-2. Extend query-only parsing and normalized observation for `vs-list` without
-   changing state; test entirely against fixtures.
+2. Use authenticated `GET /api/v1/vswitches` for normalized, read-only
+   membership observation; it does not establish ownership.
 3. Define durable schemas, unique idempotency constraints, ownership flags,
    leases, event history, and retention policy.
 4. Implement the allocator against the mock adapter with deterministic race,

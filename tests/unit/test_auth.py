@@ -40,6 +40,7 @@ def test_valid_bearer_token_reaches_every_operational_route(
     headers = authorization()
 
     assert app_client.get("/api/v1/ports/available", headers=headers).status_code == 200
+    assert app_client.get("/api/v1/vswitches", headers=headers).status_code == 200
     assert (
         app_client.post(
             "/api/v1/vswitches",
@@ -243,3 +244,24 @@ def test_valid_cli_token_is_secret_and_accepted() -> None:
     assert settings.integration_api_token.get_secret_value() == TEST_TOKEN
     assert TEST_TOKEN not in repr(settings)
     assert "**********" in repr(settings)
+
+
+@pytest.mark.parametrize(
+    "header",
+    [None, f"Bearer {WRONG_TOKEN}"],
+    ids=["missing", "invalid"],
+)
+def test_vswitch_query_rejects_auth_without_adapter_call(header: str | None) -> None:
+    adapter = Mock()
+    app = create_app(
+        settings=Settings(integration_api_token=TEST_TOKEN),
+        adapter=adapter,
+    )
+    headers = {} if header is None else {"Authorization": header}
+
+    with TestClient(app) as client:
+        response = client.get("/api/v1/vswitches", headers=headers)
+
+    assert response.status_code == 401
+    assert response.headers["WWW-Authenticate"] == "Bearer"
+    adapter.list_vswitches.assert_not_called()

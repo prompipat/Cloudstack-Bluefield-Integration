@@ -35,6 +35,12 @@ class VSwitchResult(BaseModel):
     vswitch_id: VSwitchId
 
 
+class VSwitchMembership(BaseModel):
+    model_config = ConfigDict(extra="forbid", frozen=True)
+    vswitch_id: VSwitchId
+    port_ids: tuple[PortId, ...]
+
+
 class PortAttachmentResult(BaseModel):
     model_config = ConfigDict(extra="forbid", frozen=True)
     vswitch_id: VSwitchId
