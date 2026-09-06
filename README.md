@@ -1,5 +1,8 @@
 # CloudStack–BlueField Integration API
 
+> **New teammate or Codex session?** Start with the canonical
+> [project handoff](docs/HANDOFF.md).
+
 REST integration service between Apache CloudStack and NVIDIA BlueField
 eSwitch Management.
 
