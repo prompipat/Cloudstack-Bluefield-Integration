@@ -86,12 +86,12 @@ def create_app(
                 )
         yield
 
-    expose_docs = selected_settings.eswitch_adapter_mode is AdapterMode.MOCK
+    expose_docs = selected_settings.integration_api_docs_enabled
     app = FastAPI(
         title=selected_settings.app_name,
         lifespan=lifespan,
         docs_url="/docs" if expose_docs else None,
-        redoc_url="/redoc" if expose_docs else None,
+        redoc_url=None,
         openapi_url="/openapi.json" if expose_docs else None,
     )
     app.state.settings = selected_settings

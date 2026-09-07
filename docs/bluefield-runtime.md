@@ -36,6 +36,12 @@
 - The PoC container uses supplementary group 0 for socket access.
 - Production should use a dedicated socket group.
 
+The approved current deployment uses `INTEGRATION_API_BIND_ADDRESS=0.0.0.0`
+and `INTEGRATION_API_DOCS_ENABLED=true`. Swagger exposure is independent of
+adapter mode and does not bypass Bearer authentication. `/redoc` remains
+disabled. Binding all interfaces requires the approved protected management
+and TLS/mTLS transport boundary.
+
 ## Existing eSwitch runtime
 
 - The daemon runs as the standalone Docker container `eswitch-management`

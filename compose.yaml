@@ -12,9 +12,10 @@ services:
       ESWITCH_ADAPTER_MODE: ${ESWITCH_ADAPTER_MODE:-mock}
       ESWITCHCTL_PATH: /usr/local/bin/eswitchctl
       INTEGRATION_API_TOKEN: ${INTEGRATION_API_TOKEN:?INTEGRATION_API_TOKEN must be set}
+      INTEGRATION_API_DOCS_ENABLED: ${INTEGRATION_API_DOCS_ENABLED:-false}
       ESWITCHCTL_TIMEOUT_SECONDS: "10"
     ports:
-      - "${INTEGRATION_API_BIND_ADDRESS:-127.0.0.1}:8081:8081"
+      - "${INTEGRATION_API_BIND_ADDRESS:-0.0.0.0}:8081:8081"
     volumes:
       - type: bind
         source: /usr/local/bin/eswitchctl

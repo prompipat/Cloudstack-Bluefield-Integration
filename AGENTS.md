@@ -279,8 +279,10 @@ case-insensitive; token matching is case-sensitive and constant-time.
 Health routes remain unauthenticated. Mock mode may start without a token for
 health-only development, but its operational routes return HTTP 401 until a
 valid token is configured. CLI mode must fail startup if the token is missing,
-empty, or too short. Swagger UI, ReDoc, and OpenAPI JSON are available in mock
-mode and disabled in CLI mode.
+empty, or too short. Documentation is disabled by default. When
+`INTEGRATION_API_DOCS_ENABLED=true`, Swagger UI and OpenAPI JSON are available
+at `/docs` and `/openapi.json` in either adapter mode; ReDoc remains disabled.
+Documentation exposure must not alter adapter mode or API authentication.
 
 Bearer authentication does not encrypt HTTP traffic. Remote access is
 prohibited until a protected management network, TLS termination, or another

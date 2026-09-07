@@ -79,10 +79,21 @@ is required at startup. Mock mode can start without it for health-only
 development, but operational requests return HTTP 401 until it is configured.
 Missing and invalid credentials receive the same generic response.
 
-Mock mode exposes `/docs`, `/redoc`, and `/openapi.json`. CLI mode disables
-all three. Bearer authentication protects credentials from guessing but does
-not encrypt HTTP traffic; use only an approved protected management network or
-secure transport for remote access.
+Documentation is disabled by default. Set
+`INTEGRATION_API_DOCS_ENABLED=true` to expose Swagger UI at `/docs` and the
+schema at `/openapi.json`; `/redoc` remains disabled. This flag is independent
+of `ESWITCH_ADAPTER_MODE`, and operational routes retain Bearer authentication.
+
+The approved deployment combination is:
+
+```dotenv
+INTEGRATION_API_BIND_ADDRESS=0.0.0.0
+INTEGRATION_API_DOCS_ENABLED=true
+```
+
+Bearer authentication does not encrypt HTTP traffic. Binding all interfaces
+requires an approved protected management network and TLS/mTLS or another
+approved secure transport; plain HTTP over an untrusted network is prohibited.
 
 ## Validation
 
