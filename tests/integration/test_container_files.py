@@ -40,6 +40,8 @@ def test_compose_security_and_mount_contract() -> None:
 
     assert "privileged:" not in content
     assert "/var/run/docker.sock" not in content
+    assert "INTEGRATION_API_DOCS_ENABLED: ${INTEGRATION_API_DOCS_ENABLED:-false}" in content
+    assert "${INTEGRATION_API_BIND_ADDRESS:-0.0.0.0}:8081:8081" in content
 
 
 def run_fake(*arguments: str) -> subprocess.CompletedProcess[str]:

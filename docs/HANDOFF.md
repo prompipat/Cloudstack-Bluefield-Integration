@@ -93,9 +93,15 @@ Production should replace supplementary group 0 with a dedicated socket group.
 - Tokens are at least 32 characters, secret-typed, and never committed,
   printed, logged, passed in URLs, or baked into images.
 - `/health/live` and `/health/ready` are unauthenticated.
-- The validated deployment binds the API to loopback.
-- Remote CloudStack access still requires an approved protected network with
-  TLS/mTLS, TLS termination, or another approved secure transport.
+- Documentation is disabled by default. With
+  `INTEGRATION_API_DOCS_ENABLED=true`, `/docs` and `/openapi.json` are
+  exposed while `/redoc` remains disabled.
+- Documentation exposure is independent of adapter mode; all `/api/v1/*`
+  operations still require Bearer authentication.
+- The approved deployment sets `INTEGRATION_API_BIND_ADDRESS=0.0.0.0` and
+  `INTEGRATION_API_DOCS_ENABLED=true`.
+- Binding all interfaces requires an approved protected network with TLS/mTLS,
+  TLS termination, or another approved secure transport.
 - Plain Bearer HTTP over an untrusted network is prohibited.
 
 ## 7. Validation completed

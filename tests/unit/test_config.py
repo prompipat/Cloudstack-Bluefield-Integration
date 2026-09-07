@@ -12,6 +12,7 @@ def test_settings_defaults_to_safe_mock_mode() -> None:
     assert settings.eswitch_adapter_mode is AdapterMode.MOCK
     assert settings.eswitchctl_path == Path("/usr/local/bin/eswitchctl")
     assert settings.eswitchctl_timeout_seconds == 10
+    assert settings.integration_api_docs_enabled is False
 
 
 def test_settings_loads_prefixed_environment(monkeypatch: pytest.MonkeyPatch) -> None:
@@ -19,6 +20,7 @@ def test_settings_loads_prefixed_environment(monkeypatch: pytest.MonkeyPatch) ->
     monkeypatch.setenv("ESWITCHCTL_PATH", "/opt/test/eswitchctl")
     monkeypatch.setenv("ESWITCHCTL_TIMEOUT_SECONDS", "2.5")
     monkeypatch.setenv("INTEGRATION_API_TOKEN", "environment-test-token-1234567890")
+    monkeypatch.setenv("INTEGRATION_API_DOCS_ENABLED", "true")
 
     settings = Settings()
 
@@ -27,6 +29,7 @@ def test_settings_loads_prefixed_environment(monkeypatch: pytest.MonkeyPatch) ->
     assert settings.eswitchctl_timeout_seconds == 2.5
     assert settings.integration_api_token is not None
     assert settings.integration_api_token.get_secret_value() == "environment-test-token-1234567890"
+    assert settings.integration_api_docs_enabled is True
 
 
 @pytest.mark.parametrize("timeout", ["0", "-1", "301"])

@@ -149,26 +149,60 @@ def test_token_is_absent_from_response_and_operation_logs(
 
 
 @pytest.mark.parametrize("path", ["/docs", "/redoc", "/openapi.json"])
-def test_production_disables_documentation_paths(path: str) -> None:
-    settings = Settings(
-        eswitch_adapter_mode=AdapterMode.CLI,
-        integration_api_token=TEST_TOKEN,
-    )
-    app = create_app(settings=settings, adapter=MockESwitchAdapter())
-
-    with TestClient(app) as client:
-        assert client.get(path).status_code == 404
-
-
-@pytest.mark.parametrize("path", ["/docs", "/redoc", "/openapi.json"])
-def test_mock_mode_exposes_documentation_paths(path: str) -> None:
+def test_documentation_paths_are_disabled_by_default(path: str) -> None:
     app = create_app(
         settings=Settings(integration_api_token=TEST_TOKEN),
         adapter=MockESwitchAdapter(),
     )
 
     with TestClient(app) as client:
-        assert client.get(path).status_code == 200
+        assert client.get(path).status_code == 404
+
+
+@pytest.mark.parametrize("adapter_mode", [AdapterMode.MOCK, AdapterMode.CLI])
+def test_explicit_setting_enables_swagger_and_openapi(
+    adapter_mode: AdapterMode,
+) -> None:
+    app = create_app(
+        settings=Settings(
+            eswitch_adapter_mode=adapter_mode,
+            integration_api_token=TEST_TOKEN,
+            integration_api_docs_enabled=True,
+        ),
+        adapter=MockESwitchAdapter(),
+    )
+
+    with TestClient(app) as client:
+        assert client.get("/docs").status_code == 200
+        assert client.get("/openapi.json").status_code == 200
+        assert client.get("/redoc").status_code == 404
+
+
+def test_openapi_retains_bearer_security_without_exposing_token() -> None:
+    app = create_app(
+        settings=Settings(
+            integration_api_token=TEST_TOKEN,
+            integration_api_docs_enabled=True,
+        ),
+        adapter=MockESwitchAdapter(),
+    )
+
+    with TestClient(app) as client:
+        schema_response = client.get("/openapi.json")
+        unauthorized = client.get("/api/v1/ports/available")
+        authorized = client.get(
+            "/api/v1/ports/available",
+            headers=authorization(),
+        )
+
+    schema = schema_response.json()
+    security_scheme = schema["components"]["securitySchemes"]["HTTPBearer"]
+    assert security_scheme == {"type": "http", "scheme": "bearer"}
+    assert schema["paths"]["/api/v1/ports/available"]["get"]["security"] == [{"HTTPBearer": []}]
+    assert unauthorized.status_code == 401
+    assert unauthorized.headers["WWW-Authenticate"] == "Bearer"
+    assert authorized.status_code == 200
+    assert TEST_TOKEN not in schema_response.text
 
 
 def test_future_route_on_api_router_inherits_authentication() -> None:

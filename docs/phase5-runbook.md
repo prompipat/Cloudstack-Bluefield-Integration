@@ -143,7 +143,8 @@ test "${#INTEGRATION_API_TOKEN}" -ge 32
 umask 077
 {
   printf '%s\n' 'ESWITCH_ADAPTER_MODE=mock'
-  printf '%s\n' 'INTEGRATION_API_BIND_ADDRESS=127.0.0.1'
+  printf '%s\n' 'INTEGRATION_API_BIND_ADDRESS=0.0.0.0'
+  printf '%s\n' 'INTEGRATION_API_DOCS_ENABLED=true'
   printf 'INTEGRATION_API_TOKEN=%s\n' "$INTEGRATION_API_TOKEN"
 } > .env
 chmod 0600 .env
@@ -394,7 +395,10 @@ Expected: HTTP 200 for all three, request IDs echoed, readiness body
 wrong, malformed, empty, or non-Bearer credentials must return the same HTTP
 401 response and `WWW-Authenticate: Bearer`.
 
-CLI mode returns HTTP 404 for `/docs`, `/redoc`, and `/openapi.json`.
+Documentation is independent of CLI/mock mode. It is disabled by default;
+with `INTEGRATION_API_DOCS_ENABLED=true`, `/docs` and `/openapi.json` return
+HTTP 200 while `/redoc` remains HTTP 404. API operations shown in Swagger
+continue to require Bearer authentication.
 
 ## 12. Logs and health
 
@@ -432,14 +436,14 @@ The Integration API checks must not alter state.
 Remote validation remains blocked until the team confirms a protected
 management network, TLS termination, or another approved secure transport.
 Bearer authentication alone does not make plaintext HTTP safe. After that
-approval, replace `<BLUEFIELD_MANAGEMENT_IP>` with the approved address.
+approval, retain the confirmed all-interface bind and enforce the approved
+transport boundary outside this Compose project.
 
 ### On bluefield3-101
 
 ```bash
-sed -i \
-  's/^INTEGRATION_API_BIND_ADDRESS=.*/INTEGRATION_API_BIND_ADDRESS=<BLUEFIELD_MANAGEMENT_IP>/' \
-  .env
+grep -Fx 'INTEGRATION_API_BIND_ADDRESS=0.0.0.0' .env
+grep -Fx 'INTEGRATION_API_DOCS_ENABLED=true' .env
 chmod 0600 .env
 docker compose config --quiet
 docker compose up --detach --force-recreate integration-api
@@ -587,6 +591,7 @@ umask 077
 {
   printf 'ESWITCH_ADAPTER_MODE=%s\n' "$ESWITCH_ADAPTER_MODE"
   printf 'INTEGRATION_API_BIND_ADDRESS=%s\n' "$INTEGRATION_API_BIND_ADDRESS"
+  printf '%s\n' 'INTEGRATION_API_DOCS_ENABLED=true'
   printf 'INTEGRATION_API_TOKEN=%s\n' "$INTEGRATION_API_TOKEN"
 } > .env.new
 chmod 0600 .env.new

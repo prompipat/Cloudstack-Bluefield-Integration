@@ -27,6 +27,7 @@ class Settings(BaseSettings):
     eswitch_adapter_mode: AdapterMode = AdapterMode.MOCK
     eswitchctl_path: Path = Path("/usr/local/bin/eswitchctl")
     integration_api_token: SecretStr | None = None
+    integration_api_docs_enabled: bool = False
 
     @model_validator(mode="after")
     def validate_api_token(self) -> "Settings":
